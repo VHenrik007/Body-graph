@@ -655,6 +655,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_enhanced_input"
+version = "0.19.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e59cbbeb9b1a8cac82e4a575da20a25c43f4b2f465ea809329bcc2e88935c76"
+dependencies = [
+ "bevy",
+ "bevy_enhanced_input_macros",
+ "bitflags 2.10.0",
+ "log",
+ "smallvec",
+ "variadics_please",
+]
+
+[[package]]
+name = "bevy_enhanced_input_macros"
+version = "0.19.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc7bb52c32cdd015ee6f2fced6951c7123d89e79fcdc9e2aa361f8c743a47385"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bevy_gilrs"
 version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1614,6 +1639,7 @@ name = "body_graph"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_enhanced_input",
 ]
 
 [[package]]

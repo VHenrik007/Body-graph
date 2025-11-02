@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::graph::{
     components::{Canvas, TemporaryDirectedEdge},
-    constants::{BG_COLOR, TEMP_EDGE_COLOR},
+    constants::{BG_COLOR, EDGE_SHAPE, TEMP_EDGE_COLOR},
     observers::*,
 };
 
@@ -27,14 +27,12 @@ pub fn spawn_temporary_edge(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let edge_shape = Segment2d::new(Vec2::ZERO, Vec2::X);
-
     commands.spawn((
         TemporaryDirectedEdge {
             from: None,
             to: Vec2::ZERO,
         },
-        Mesh2d(meshes.add(edge_shape)),
+        Mesh2d(meshes.add(EDGE_SHAPE)),
         MeshMaterial2d(materials.add(TEMP_EDGE_COLOR)),
     ));
 }

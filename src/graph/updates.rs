@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::graph::components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex};
+use crate::graph::{
+    components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
+    constants::EDGE_WIDTH,
+};
 
 /// Using an inner Position component for readability's sake, which is a `Vec2`
 /// that needs to be transformed into a proper `Transform`.
@@ -12,18 +15,24 @@ pub fn project_positions(mut positionables: Query<(&mut Transform, &Position), W
 
 /// Each edge should form a segment between its vertices.
 pub fn update_edge_transforms(
-    edges: Query<(&DirectedEdge, &mut Transform), Without<Vertex>>,
+    mut commands: Commands,
+    edges: Query<(&DirectedEdge, &mut Transform, Entity), Without<Vertex>>,
     positions: Query<&Position>,
 ) {
-    for (edge, transform) in edges {
-        let Ok(from_pos) = positions.get(edge.from) else {
-            continue;
-        };
-        let Ok(to_pos) = positions.get(edge.to) else {
-            continue;
+    for (edge, transform, entity) in edges {
+        if let Ok(from_pos) = positions.get(edge.from) {
+            if let Ok(to_pos) = positions.get(edge.to) {
+                apply_edge_transform(from_pos.0, to_pos.0, transform.into_inner());
+                continue;
+            };
         };
 
-        apply_edge_transform(from_pos.0, to_pos.0, transform.into_inner());
+        // This branch is reached if any of the vertices is missing.
+        // This occurs on deleting a vertex, when the edge should be
+        // deleted too.
+        if let Ok(mut entity) = commands.get_entity(entity) {
+            entity.despawn();
+        }
     }
 }
 
@@ -52,7 +61,8 @@ fn apply_edge_transform(from_pos: Vec2, to_pos: Vec2, transform: &mut Transform)
     let length = direction.length();
     let angle = direction.y.atan2(direction.x);
 
-    transform.translation = from_pos.extend(-0.5);
+    transform.translation = (from_pos + direction / 2.0).extend(-0.5);
     transform.rotation = Quat::from_rotation_z(angle);
     transform.scale.x = length;
+    transform.scale.y = EDGE_WIDTH;
 }

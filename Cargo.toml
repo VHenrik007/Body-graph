@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 bevy = "0.17.2"
+bevy_enhanced_input = "0.19.2"

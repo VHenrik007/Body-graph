@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::graph::{
     components::{DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
-    constants::{EDGE_COLOR, VERTEX_COLOR, VERTEX_SHAPE},
+    constants::{EDGE_COLOR, EDGE_SHAPE, VERTEX_COLOR, VERTEX_SHAPE},
     resources::HoveredEntity,
 };
 
@@ -12,9 +12,14 @@ pub fn on_bg_clicked(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    camera: Single<(&Camera, &GlobalTransform)>,
 ) {
     if click.button == PointerButton::Primary {
-        let Some(click_position) = click.hit.position else {
+        let (camera, camera_transform) = camera.into_inner();
+
+        let Ok(world_pos) =
+            camera.viewport_to_world_2d(camera_transform, click.pointer_location.position)
+        else {
             return;
         };
 
@@ -23,8 +28,9 @@ pub fn on_bg_clicked(
                 Vertex,
                 Mesh2d(meshes.add(VERTEX_SHAPE)),
                 MeshMaterial2d(materials.add(VERTEX_COLOR)),
-                Position(Vec2::new(click_position.x, click_position.y)),
+                Position(world_pos),
             ))
+            .observe(on_vertex_clicked)
             .observe(on_vertex_hovered)
             .observe(on_vertex_out)
             .observe(on_vertex_dragging)
@@ -45,6 +51,23 @@ pub fn on_vertex_hovered(over: On<Pointer<Over>>, mut hovered_entity: ResMut<Hov
 ///  For more information see the docs at the resource declaration.
 pub fn on_vertex_out(_out: On<Pointer<Out>>, mut hovered_entity: ResMut<HoveredEntity>) {
     hovered_entity.0 = None;
+}
+
+pub fn on_vertex_clicked(
+    click: On<Pointer<Click>>,
+    mut commands: Commands,
+    vertices: Query<Entity, With<Vertex>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    let is_ctrl_held =
+        { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
+
+    if is_ctrl_held {
+        let Ok(target_vertex) = vertices.get(click.entity) else {
+            return;
+        };
+        commands.entity(target_vertex).despawn();
+    }
 }
 
 /// Clicking with the right click on a vertex
@@ -105,19 +128,22 @@ pub fn on_vertex_drop(
                 .observe(on_vertex_dragging)
                 .observe(on_vertex_drop)
                 .observe(on_vertex_dragged)
+                .observe(on_vertex_clicked)
                 .id();
 
             to_vertex = new_vertex;
         }
 
-        commands.spawn((
-            DirectedEdge {
-                from: drag.entity,
-                to: to_vertex,
-            },
-            Mesh2d(meshes.add(Segment2d::new(Vec2::ZERO, Vec2::X))),
-            MeshMaterial2d(materials.add(EDGE_COLOR)),
-        ));
+        commands
+            .spawn((
+                DirectedEdge {
+                    from: drag.entity,
+                    to: to_vertex,
+                },
+                Mesh2d(meshes.add(EDGE_SHAPE)),
+                MeshMaterial2d(materials.add(EDGE_COLOR)),
+            ))
+            .observe(on_edge_clicked);
 
         temp_edge.from = None;
     }
@@ -132,18 +158,83 @@ pub fn on_vertex_dragging(
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
-    if drag.button == PointerButton::Primary {
-        let Ok(mut position) = positions.get_mut(drag.entity) else {
-            return;
-        };
-        position.0.x += drag.delta.x;
-        position.0.y -= drag.delta.y;
-    } else if drag.button == PointerButton::Secondary {
-        let (camera, camera_transform) = camera.into_inner();
-        let cursor_screen_pos = drag.pointer_location.position;
+    let (camera, camera_transform) = camera.into_inner();
+    let cursor_screen_pos = drag.pointer_location.position;
+    let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_screen_pos) else {
+        return;
+    };
 
-        if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_screen_pos) {
-            temp_edge.to = world_pos;
+    if drag.button == PointerButton::Primary {
+        if let Ok(mut position) = positions.get_mut(drag.entity) {
+            position.0 = world_pos;
+        };
+    } else if drag.button == PointerButton::Secondary {
+        temp_edge.to = world_pos;
+    }
+}
+
+/// Handles edge deletion and intermediary vertex creation.
+// NOTE: Tried making the vertex creation using `Press` but it
+// did not propagate into a vertex drag, so I left it here.
+// I might try that again in the future.
+fn on_edge_clicked(
+    click: On<Pointer<Click>>,
+    mut commands: Commands,
+    mut edges: Query<&mut DirectedEdge>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+) {
+    let is_ctrl_held =
+        { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
+
+    if click.button == PointerButton::Primary {
+        if is_ctrl_held {
+            if let Ok(mut edge) = commands.get_entity(click.entity) {
+                edge.despawn();
+            }
+        } else {
+            let (camera, camera_transform) = camera.into_inner();
+
+            let Ok(world_pos) =
+                camera.viewport_to_world_2d(camera_transform, click.pointer_location.position)
+            else {
+                return;
+            };
+
+            let new_vertex = commands
+                .spawn((
+                    Vertex,
+                    Mesh2d(meshes.add(VERTEX_SHAPE)),
+                    MeshMaterial2d(materials.add(VERTEX_COLOR)),
+                    Position(world_pos),
+                ))
+                .observe(on_vertex_hovered)
+                .observe(on_vertex_out)
+                .observe(on_vertex_dragging)
+                .observe(on_vertex_drop)
+                .observe(on_vertex_dragged)
+                .observe(on_vertex_clicked)
+                .id();
+
+            let Ok(mut edge) = edges.get_mut(click.entity) else {
+                return;
+            };
+
+            let prev_to = edge.to;
+            edge.to = new_vertex;
+
+            commands
+                .spawn((
+                    DirectedEdge {
+                        from: new_vertex,
+                        to: prev_to,
+                    },
+                    Mesh2d(meshes.add(EDGE_SHAPE)),
+                    MeshMaterial2d(materials.add(EDGE_COLOR)),
+                ))
+                .observe(on_edge_clicked);
         }
     }
 }
