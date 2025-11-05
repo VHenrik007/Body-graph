@@ -15,5 +15,4 @@ pub fn setup_input(mut commands: Commands) {
             (Action::<DeleteModifier>::new(), bindings![KeyCode::ControlLeft, KeyCode::ControlRight]),
         ]),
     ));
-    println!("Input context spawned!");
 }

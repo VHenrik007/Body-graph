@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 
 use crate::graph::{
-    components::{DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
-    constants::{EDGE_COLOR, EDGE_SHAPE, VERTEX_COLOR, VERTEX_SHAPE},
-    resources::HoveredEntity,
+    components::{DirectedEdge, Position, TemporaryDirectedEdge, Vertex, ClickTracker},
+    constants::{EDGE_COLOR, EDGE_SHAPE, VERTEX_COLOR, VERTEX_SHAPE, VERTEX_LABEL_FONT_SIZE, CONSECUTIVE_CLICK_TIME},
+    events::VertexRenameEvent,
+    resources::{HoveredEntity, RenamingState},
 };
 
 /// Clicking the canvas results in a new Vertex.
@@ -25,7 +26,10 @@ pub fn on_bg_clicked(
 
         commands
             .spawn((
-                Vertex,
+                Vertex::default(),
+                ClickTracker::default(),
+                Text2d::new(""),
+                TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
                 Mesh2d(meshes.add(VERTEX_SHAPE)),
                 MeshMaterial2d(materials.add(VERTEX_COLOR)),
                 Position(world_pos),
@@ -53,20 +57,80 @@ pub fn on_vertex_out(_out: On<Pointer<Out>>, mut hovered_entity: ResMut<HoveredE
     hovered_entity.0 = None;
 }
 
+pub fn on_vertex_renamed(
+    event: On<VertexRenameEvent>,
+    mut vertex_query: Query<(&mut Vertex, &mut Text2d)>,
+) {
+    let new_label = event.new_label.clone();
+    let vertex_entity = event.entity;
+
+    let Ok((mut modified_vertex, mut modified_text)) = vertex_query.get_mut(vertex_entity) else {
+        return;
+    };
+
+    modified_vertex.label = new_label.clone();
+    modified_text.0 = new_label;
+}
+
 pub fn on_vertex_clicked(
     click: On<Pointer<Click>>,
     mut commands: Commands,
-    vertices: Query<Entity, With<Vertex>>,
+    mut trackers: Query<&mut ClickTracker, With<Vertex>>,
+    vertices: Query<(Entity, &Vertex)>,
+    camera: Single<(&Camera, &GlobalTransform)>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
+    mut renaming: ResMut<RenamingState>,
 ) {
     let is_ctrl_held =
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
     if is_ctrl_held {
-        let Ok(target_vertex) = vertices.get(click.entity) else {
+        let Ok((target_entity, _)) = vertices.get(click.entity) else {
             return;
         };
-        commands.entity(target_vertex).despawn();
+        commands.entity(target_entity).despawn();
+        return;
+    }
+
+    let Ok(mut tracker) = trackers.get_mut(click.entity) else {
+        return;
+    };
+
+    let current_time = time.elapsed_secs_f64();
+    let Some(last_time) = tracker.last_click_time else {
+        tracker.click_count = 1;
+        tracker.last_click_time = Some(current_time);
+        return;
+    };
+
+
+    if current_time - last_time <= CONSECUTIVE_CLICK_TIME {
+        tracker.click_count += 1;
+        tracker.last_click_time = Some(current_time);
+
+        // This needs refinement tho
+        if tracker.click_count == 2 {
+            let (camera, camera_transform) = camera.into_inner();
+
+            let Some(click_world_pos) = click.hit.position else {
+                return;
+            };
+
+            let Ok((_, target_vertex)) = vertices.get(click.entity) else {
+                return;
+            };
+
+            if let Ok(screen_pos) = camera.world_to_viewport(camera_transform, click_world_pos) {
+                renaming.active = true;
+                renaming.entity = Some(click.entity);
+                renaming.temp_text = target_vertex.label.clone();
+                renaming.screen_position = screen_pos;
+            }
+        }
+    } else {
+        tracker.click_count = 1;
+        tracker.last_click_time = Some(current_time);
     }
 }
 
@@ -118,17 +182,20 @@ pub fn on_vertex_drop(
 
             let new_vertex = commands
                 .spawn((
-                    Vertex,
+                    Vertex::default(),
+                    Text2d::new(""),
+                    TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
+                    ClickTracker::default(),
                     Mesh2d(meshes.add(VERTEX_SHAPE)),
                     MeshMaterial2d(materials.add(VERTEX_COLOR)),
                     Position(world_pos),
                 ))
+                .observe(on_vertex_clicked)
                 .observe(on_vertex_hovered)
                 .observe(on_vertex_out)
                 .observe(on_vertex_dragging)
                 .observe(on_vertex_drop)
                 .observe(on_vertex_dragged)
-                .observe(on_vertex_clicked)
                 .id();
 
             to_vertex = new_vertex;
@@ -205,17 +272,20 @@ fn on_edge_clicked(
 
             let new_vertex = commands
                 .spawn((
-                    Vertex,
+                    Vertex::default(),
+                    ClickTracker::default(),
+                    Text2d::new(""),
+                    TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
                     Mesh2d(meshes.add(VERTEX_SHAPE)),
                     MeshMaterial2d(materials.add(VERTEX_COLOR)),
                     Position(world_pos),
                 ))
+                .observe(on_vertex_clicked)
                 .observe(on_vertex_hovered)
                 .observe(on_vertex_out)
                 .observe(on_vertex_dragging)
                 .observe(on_vertex_drop)
                 .observe(on_vertex_dragged)
-                .observe(on_vertex_clicked)
                 .id();
 
             let Ok(mut edge) = edges.get_mut(click.entity) else {

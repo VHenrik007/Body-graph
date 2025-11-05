@@ -1,8 +1,11 @@
 use bevy::prelude::*;
+use bevy_egui::{egui, EguiContexts};
 
 use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
     constants::EDGE_WIDTH,
+    events::VertexRenameEvent,
+    resources::RenamingState,
 };
 
 /// Using an inner Position component for readability's sake, which is a `Vec2`
@@ -11,6 +14,48 @@ pub fn project_positions(mut positionables: Query<(&mut Transform, &Position), W
     for (mut transform, position) in &mut positionables {
         transform.translation = position.0.extend(0.);
     }
+}
+
+pub fn show_rename_input(
+    mut commands: Commands,
+    mut contexts: EguiContexts,
+    mut renaming: ResMut<RenamingState>,
+) {
+    let Ok(context) = contexts.ctx_mut() else {
+        return;
+    };
+
+    if !renaming.active {
+        return;
+    }
+
+    egui::Window::new("rename_window")
+        .title_bar(false)
+        .resizable(false)
+        .fixed_pos([renaming.screen_position.x, renaming.screen_position.y])
+        .show(&context, |ui| {
+            let response = ui.text_edit_singleline(&mut renaming.temp_text);
+
+            response.request_focus();
+            // Manual backspace lol
+            if ui.input(|i| i.key_pressed(egui::Key::Backspace)) {
+                renaming.temp_text.pop();
+            }
+
+            if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                if let Some(entity) = renaming.entity {
+                    commands.trigger(VertexRenameEvent {
+                        entity,
+                        new_label: renaming.temp_text.clone(),
+                    });
+                }
+                renaming.active = false;
+            }
+
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                renaming.active = false;
+            }
+        });
 }
 
 /// Each edge should form a segment between its vertices.
