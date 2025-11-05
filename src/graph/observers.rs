@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::graph::{
+    bundles::VertexBundle,
     components::{DirectedEdge, Position, TemporaryDirectedEdge, Vertex, ClickTracker},
     constants::{EDGE_COLOR, EDGE_SHAPE, VERTEX_COLOR, VERTEX_SHAPE, VERTEX_LABEL_FONT_SIZE, CONSECUTIVE_CLICK_TIME},
     events::VertexRenameEvent,
@@ -11,10 +12,11 @@ use crate::graph::{
 pub fn on_bg_clicked(
     click: On<Pointer<Click>>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
+    println!("bg clicked");
     if click.button == PointerButton::Primary {
         let (camera, camera_transform) = camera.into_inner();
 
@@ -26,13 +28,7 @@ pub fn on_bg_clicked(
 
         commands
             .spawn((
-                Vertex::default(),
-                ClickTracker::default(),
-                Text2d::new(""),
-                TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
-                Mesh2d(meshes.add(VERTEX_SHAPE)),
-                MeshMaterial2d(materials.add(VERTEX_COLOR)),
-                Position(world_pos),
+                VertexBundle::new(meshes.into_inner(), materials.into_inner(), world_pos),
             ))
             .observe(on_vertex_clicked)
             .observe(on_vertex_hovered)
@@ -47,6 +43,7 @@ pub fn on_bg_clicked(
 /// `HoveredEntity` resource. For more information
 /// see the docs at the resource declaration.
 pub fn on_vertex_hovered(over: On<Pointer<Over>>, mut hovered_entity: ResMut<HoveredEntity>) {
+    println!("Vertex hovered: {:?}", hovered_entity.0);
     hovered_entity.0 = Some(over.entity);
 }
 
@@ -54,6 +51,7 @@ pub fn on_vertex_hovered(over: On<Pointer<Over>>, mut hovered_entity: ResMut<Hov
 /// have `None` set for the `HoveredEntity` resource.
 ///  For more information see the docs at the resource declaration.
 pub fn on_vertex_out(_out: On<Pointer<Out>>, mut hovered_entity: ResMut<HoveredEntity>) {
+    println!("VERTEX OUT: {:?}", hovered_entity.0);
     hovered_entity.0 = None;
 }
 
@@ -61,6 +59,7 @@ pub fn on_vertex_renamed(
     event: On<VertexRenameEvent>,
     mut vertex_query: Query<(&mut Vertex, &mut Text2d)>,
 ) {
+    println!("Vertex renamed");
     let new_label = event.new_label.clone();
     let vertex_entity = event.entity;
 
@@ -82,6 +81,7 @@ pub fn on_vertex_clicked(
     time: Res<Time>,
     mut renaming: ResMut<RenamingState>,
 ) {
+    println!("Vertex clicked");
     let is_ctrl_held =
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
@@ -142,6 +142,7 @@ pub fn on_vertex_dragged(
     drag: On<Pointer<DragStart>>,
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
 ) {
+    println!("Vertex dragged start");
     if drag.button == PointerButton::Secondary {
         let Some(click_position) = drag.hit.position else {
             return;
@@ -167,6 +168,7 @@ pub fn on_vertex_drop(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    println!("Vertex drop");
     if drag.button == PointerButton::Secondary {
         let to_vertex;
         if let Some(hovered_vertex) = hovered.0 {
@@ -225,6 +227,7 @@ pub fn on_vertex_dragging(
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
+    println!("Vertex drag");
     let (camera, camera_transform) = camera.into_inner();
     let cursor_screen_pos = drag.pointer_location.position;
     let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_screen_pos) else {
@@ -253,6 +256,7 @@ fn on_edge_clicked(
     keyboard: Res<ButtonInput<KeyCode>>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
+    println!("Edge clicked");
     let is_ctrl_held =
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
