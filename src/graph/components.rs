@@ -40,20 +40,10 @@ pub struct TemporaryDirectedEdge {
 )]
 pub struct Canvas;
 
-
 /// Used for deciding for double (or any other) clicking
 /// events.
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct ClickTracker {
     pub last_click_time: Option<f64>,
     pub click_count: u32,
-}
-
-impl Default for ClickTracker {
-    fn default() -> Self {
-        Self {
-            last_click_time: None,
-            click_count: 0,
-        }
-    }
 }

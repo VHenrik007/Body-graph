@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{EguiContexts, egui};
 
 use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
@@ -33,7 +33,7 @@ pub fn show_rename_input(
         .title_bar(false)
         .resizable(false)
         .fixed_pos([renaming.screen_position.x, renaming.screen_position.y])
-        .show(&context, |ui| {
+        .show(context, |ui| {
             let response = ui.text_edit_singleline(&mut renaming.temp_text);
 
             response.request_focus();
@@ -65,11 +65,11 @@ pub fn update_edge_transforms(
     positions: Query<&Position>,
 ) {
     for (edge, transform, entity) in edges {
-        if let Ok(from_pos) = positions.get(edge.from) {
-            if let Ok(to_pos) = positions.get(edge.to) {
-                apply_edge_transform(from_pos.0, to_pos.0, transform.into_inner());
-                continue;
-            };
+        if let Ok(from_pos) = positions.get(edge.from)
+            && let Ok(to_pos) = positions.get(edge.to)
+        {
+            apply_edge_transform(from_pos.0, to_pos.0, transform.into_inner());
+            continue;
         };
 
         // This branch is reached if any of the vertices is missing.

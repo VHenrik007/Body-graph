@@ -2,8 +2,8 @@ use bevy::prelude::*;
 
 use crate::graph::{
     bundles::VertexBundle,
-    components::{DirectedEdge, Position, TemporaryDirectedEdge, Vertex, ClickTracker},
-    constants::{EDGE_COLOR, EDGE_SHAPE, VERTEX_COLOR, VERTEX_SHAPE, VERTEX_LABEL_FONT_SIZE, CONSECUTIVE_CLICK_TIME},
+    components::{ClickTracker, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
+    constants::{CONSECUTIVE_CLICK_TIME, EDGE_COLOR, EDGE_SHAPE},
     events::VertexRenameEvent,
     resources::{HoveredEntity, RenamingState},
 };
@@ -16,7 +16,6 @@ pub fn on_bg_clicked(
     materials: ResMut<Assets<ColorMaterial>>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
-    println!("bg clicked");
     if click.button == PointerButton::Primary {
         let (camera, camera_transform) = camera.into_inner();
 
@@ -26,16 +25,7 @@ pub fn on_bg_clicked(
             return;
         };
 
-        commands
-            .spawn((
-                VertexBundle::new(meshes.into_inner(), materials.into_inner(), world_pos),
-            ))
-            .observe(on_vertex_clicked)
-            .observe(on_vertex_hovered)
-            .observe(on_vertex_out)
-            .observe(on_vertex_dragging)
-            .observe(on_vertex_drop)
-            .observe(on_vertex_dragged);
+        VertexBundle::spawn(&mut commands, meshes.into_inner(), materials.into_inner(), world_pos, None);
     }
 }
 
@@ -43,7 +33,6 @@ pub fn on_bg_clicked(
 /// `HoveredEntity` resource. For more information
 /// see the docs at the resource declaration.
 pub fn on_vertex_hovered(over: On<Pointer<Over>>, mut hovered_entity: ResMut<HoveredEntity>) {
-    println!("Vertex hovered: {:?}", hovered_entity.0);
     hovered_entity.0 = Some(over.entity);
 }
 
@@ -51,7 +40,6 @@ pub fn on_vertex_hovered(over: On<Pointer<Over>>, mut hovered_entity: ResMut<Hov
 /// have `None` set for the `HoveredEntity` resource.
 ///  For more information see the docs at the resource declaration.
 pub fn on_vertex_out(_out: On<Pointer<Out>>, mut hovered_entity: ResMut<HoveredEntity>) {
-    println!("VERTEX OUT: {:?}", hovered_entity.0);
     hovered_entity.0 = None;
 }
 
@@ -59,7 +47,6 @@ pub fn on_vertex_renamed(
     event: On<VertexRenameEvent>,
     mut vertex_query: Query<(&mut Vertex, &mut Text2d)>,
 ) {
-    println!("Vertex renamed");
     let new_label = event.new_label.clone();
     let vertex_entity = event.entity;
 
@@ -81,7 +68,6 @@ pub fn on_vertex_clicked(
     time: Res<Time>,
     mut renaming: ResMut<RenamingState>,
 ) {
-    println!("Vertex clicked");
     let is_ctrl_held =
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
@@ -103,7 +89,6 @@ pub fn on_vertex_clicked(
         tracker.last_click_time = Some(current_time);
         return;
     };
-
 
     if current_time - last_time <= CONSECUTIVE_CLICK_TIME {
         tracker.click_count += 1;
@@ -142,7 +127,6 @@ pub fn on_vertex_dragged(
     drag: On<Pointer<DragStart>>,
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
 ) {
-    println!("Vertex dragged start");
     if drag.button == PointerButton::Secondary {
         let Some(click_position) = drag.hit.position else {
             return;
@@ -157,6 +141,7 @@ pub fn on_vertex_dragged(
 /// Dropping the vertex can have two outcomes:
 /// - The drop location is occupied by another vertex
 /// - The drop location is clear on the Canvas
+///
 /// Regardless of the outcome, we spawn a new edge, and
 /// based on the outcome we also spawn a new vertex.
 pub fn on_vertex_drop(
@@ -165,10 +150,11 @@ pub fn on_vertex_drop(
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
     camera: Single<(&Camera, &GlobalTransform)>,
     hovered: Res<HoveredEntity>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    println!("Vertex drop");
+    let meshes = meshes.into_inner();
+    let materials = materials.into_inner();
     if drag.button == PointerButton::Secondary {
         let to_vertex;
         if let Some(hovered_vertex) = hovered.0 {
@@ -182,23 +168,7 @@ pub fn on_vertex_drop(
                 return;
             };
 
-            let new_vertex = commands
-                .spawn((
-                    Vertex::default(),
-                    Text2d::new(""),
-                    TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
-                    ClickTracker::default(),
-                    Mesh2d(meshes.add(VERTEX_SHAPE)),
-                    MeshMaterial2d(materials.add(VERTEX_COLOR)),
-                    Position(world_pos),
-                ))
-                .observe(on_vertex_clicked)
-                .observe(on_vertex_hovered)
-                .observe(on_vertex_out)
-                .observe(on_vertex_dragging)
-                .observe(on_vertex_drop)
-                .observe(on_vertex_dragged)
-                .id();
+            let new_vertex = VertexBundle::spawn(&mut commands, meshes, materials, world_pos, None);
 
             to_vertex = new_vertex;
         }
@@ -227,7 +197,6 @@ pub fn on_vertex_dragging(
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
-    println!("Vertex drag");
     let (camera, camera_transform) = camera.into_inner();
     let cursor_screen_pos = drag.pointer_location.position;
     let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_screen_pos) else {
@@ -251,12 +220,13 @@ fn on_edge_clicked(
     click: On<Pointer<Click>>,
     mut commands: Commands,
     mut edges: Query<&mut DirectedEdge>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
-    println!("Edge clicked");
+    let meshes = meshes.into_inner();
+    let materials = materials.into_inner();
     let is_ctrl_held =
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
@@ -274,23 +244,7 @@ fn on_edge_clicked(
                 return;
             };
 
-            let new_vertex = commands
-                .spawn((
-                    Vertex::default(),
-                    ClickTracker::default(),
-                    Text2d::new(""),
-                    TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
-                    Mesh2d(meshes.add(VERTEX_SHAPE)),
-                    MeshMaterial2d(materials.add(VERTEX_COLOR)),
-                    Position(world_pos),
-                ))
-                .observe(on_vertex_clicked)
-                .observe(on_vertex_hovered)
-                .observe(on_vertex_out)
-                .observe(on_vertex_dragging)
-                .observe(on_vertex_drop)
-                .observe(on_vertex_dragged)
-                .id();
+            let new_vertex = VertexBundle::spawn(&mut commands, meshes, materials, world_pos, None);
 
             let Ok(mut edge) = edges.get_mut(click.entity) else {
                 return;

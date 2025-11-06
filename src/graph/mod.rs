@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::{EguiPlugin, EguiPrimaryContextPass, input::egui_wants_any_pointer_input};
+use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 
 mod bundles;
 mod components;
@@ -10,10 +10,12 @@ mod resources;
 mod startups;
 mod updates;
 
+use observers::on_vertex_renamed;
 use resources::{HoveredEntity, RenamingState};
 use startups::{spawn_canvas, spawn_temporary_edge};
-use updates::{project_positions, update_edge_transforms, update_temp_edge_transform, show_rename_input};
-use observers::on_vertex_renamed;
+use updates::{
+    project_positions, show_rename_input, update_edge_transforms, update_temp_edge_transform,
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(EguiPlugin::default())
