@@ -25,7 +25,7 @@ pub fn on_bg_clicked(
             return;
         };
 
-        VertexBundle::spawn(&mut commands, meshes.into_inner(), materials.into_inner(), world_pos, None);
+        VertexBundle::spawn(&mut commands, meshes.into_inner(), materials.into_inner(), world_pos);
     }
 }
 
@@ -43,21 +43,33 @@ pub fn on_vertex_out(_out: On<Pointer<Out>>, mut hovered_entity: ResMut<HoveredE
     hovered_entity.0 = None;
 }
 
+
+/// When a vertex is renamed, we update the label and
+/// the text component that is a child of the vertex entity.
 pub fn on_vertex_renamed(
     event: On<VertexRenameEvent>,
-    mut vertex_query: Query<(&mut Vertex, &mut Text2d)>,
+    mut vertex_query: Query<(&mut Vertex, &Children)>,
+    mut text_query: Query<&mut Text2d>,
 ) {
     let new_label = event.new_label.clone();
     let vertex_entity = event.entity;
 
-    let Ok((mut modified_vertex, mut modified_text)) = vertex_query.get_mut(vertex_entity) else {
+    let Ok((mut modified_vertex, children)) = vertex_query.get_mut(vertex_entity) else {
         return;
     };
-
     modified_vertex.label = new_label.clone();
-    modified_text.0 = new_label;
+
+    for child in children.iter() {
+        let Ok(mut modified_text) = text_query.get_mut(child) else {
+            continue;
+        };
+
+        modified_text.0 = new_label.clone();
+    }
 }
 
+/// Clicking a vertex with the left click twice
+/// should start the renaming process.
 pub fn on_vertex_clicked(
     click: On<Pointer<Click>>,
     mut commands: Commands,
@@ -168,7 +180,7 @@ pub fn on_vertex_drop(
                 return;
             };
 
-            let new_vertex = VertexBundle::spawn(&mut commands, meshes, materials, world_pos, None);
+            let new_vertex = VertexBundle::spawn(&mut commands, meshes, materials, world_pos);
 
             to_vertex = new_vertex;
         }
@@ -244,7 +256,7 @@ fn on_edge_clicked(
                 return;
             };
 
-            let new_vertex = VertexBundle::spawn(&mut commands, meshes, materials, world_pos, None);
+            let new_vertex = VertexBundle::spawn(&mut commands, meshes, materials, world_pos);
 
             let Ok(mut edge) = edges.get_mut(click.entity) else {
                 return;

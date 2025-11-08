@@ -2,19 +2,18 @@ use bevy::prelude::*;
 
 use crate::graph::{
     components::{ClickTracker, Position, Vertex},
-    constants::{VERTEX_COLOR, VERTEX_LABEL_FONT_SIZE, VERTEX_SHAPE, VERTEX_SIZE},
+    constants::{VERTEX_COLOR, VERTEX_LABEL_FONT_SIZE, VERTEX_SHAPE, VERTEX_SIZE, VERTEX_TEXT_Z},
     observers::{
         on_vertex_clicked, on_vertex_dragged, on_vertex_dragging, on_vertex_drop,
         on_vertex_hovered, on_vertex_out,
     },
 };
 
+/// A bundle for spawning a vertex in the graph.
 #[derive(Bundle)]
 pub struct VertexBundle {
     vertex: Vertex,
     click_tracker: ClickTracker,
-    // If not commented, the first vertex behaves oddly
-    // text: Text2d,
     font: TextFont,
     mesh: Mesh2d,
     material: MeshMaterial2d<ColorMaterial>,
@@ -30,8 +29,6 @@ impl VertexBundle {
         Self {
             vertex: Vertex::default(),
             click_tracker: ClickTracker::default(),
-            // If not commented, the first vertex behaves oddly
-            // text: Text2d::default(),
             font: TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
             mesh: Mesh2d(meshes.add(VERTEX_SHAPE)),
             material: MeshMaterial2d(materials.add(VERTEX_COLOR)),
@@ -44,7 +41,6 @@ impl VertexBundle {
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
         position: Vec2,
-        label: Option<&str>,
     ) -> Entity {
         let entity_id = commands.spawn(Self::new(meshes, materials, position)).id();
 
@@ -56,15 +52,13 @@ impl VertexBundle {
             .observe(on_vertex_drop)
             .observe(on_vertex_dragged);
 
-        if let Some(label_text) = label {
-            commands.entity(entity_id).with_children(|parent| {
-                parent.spawn((
-                    Text2d::new(label_text),
-                    TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
-                    Transform::from_xyz(0.0, VERTEX_SIZE + 5.0, 1.0),
-                ));
-            });
-        }
+        commands.entity(entity_id).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(""),
+                TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
+                Transform::from_xyz(0.0, -VERTEX_SIZE - 15.0, VERTEX_TEXT_Z),
+            ));
+        });
 
         entity_id
     }

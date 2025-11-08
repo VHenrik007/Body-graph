@@ -1,5 +1,8 @@
 use bevy::prelude::*;
 
+use crate::graph::constants::CANVAS_Z;
+
+
 /// Custom position for better readability
 /// and in-game position representation
 #[derive(Component, Default, Clone)]
@@ -34,7 +37,7 @@ pub struct TemporaryDirectedEdge {
 #[derive(Component)]
 #[require(
     Transform = Transform {
-        translation: Vec3 { x: 0., y: 0., z: -1. },
+        translation: Vec3 { x: 0., y: 0., z: CANVAS_Z },
         ..Default::default()
     }
 )]

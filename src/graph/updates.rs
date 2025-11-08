@@ -3,7 +3,7 @@ use bevy_egui::{EguiContexts, egui};
 
 use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
-    constants::EDGE_WIDTH,
+    constants::{EDGE_WIDTH, VERTEX_Z, EDGE_Z},
     events::VertexRenameEvent,
     resources::RenamingState,
 };
@@ -12,10 +12,11 @@ use crate::graph::{
 /// that needs to be transformed into a proper `Transform`.
 pub fn project_positions(mut positionables: Query<(&mut Transform, &Position), Without<Canvas>>) {
     for (mut transform, position) in &mut positionables {
-        transform.translation = position.0.extend(0.);
+        transform.translation = position.0.extend(VERTEX_Z);
     }
 }
 
+/// Updates the renaming state after a vertex is double clicked.
 pub fn show_rename_input(
     mut commands: Commands,
     mut contexts: EguiContexts,
@@ -106,7 +107,7 @@ fn apply_edge_transform(from_pos: Vec2, to_pos: Vec2, transform: &mut Transform)
     let length = direction.length();
     let angle = direction.y.atan2(direction.x);
 
-    transform.translation = (from_pos + direction / 2.0).extend(-0.5);
+    transform.translation = (from_pos + direction / 2.0).extend(EDGE_Z);
     transform.rotation = Quat::from_rotation_z(angle);
     transform.scale.x = length;
     transform.scale.y = EDGE_WIDTH;
