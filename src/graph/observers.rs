@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::{CursorIcon, CursorOptions, SystemCursorIcon}};
 
 use crate::graph::{
     bundles::VertexBundle,
@@ -32,15 +32,35 @@ pub fn on_bg_clicked(
 /// If a vertex is hovered we save it into the
 /// `HoveredEntity` resource. For more information
 /// see the docs at the resource declaration.
-pub fn on_vertex_hovered(over: On<Pointer<Over>>, mut hovered_entity: ResMut<HoveredEntity>) {
+pub fn on_vertex_hovered(
+    over: On<Pointer<Over>>,
+    mut commands: Commands,
+    mut hovered_entity: ResMut<HoveredEntity>,
+    window: Single<Entity, With<Window>>,
+) {
     hovered_entity.0 = Some(over.entity);
+    commands.entity(window.into_inner()).insert(
+        CursorIcon::from(
+          SystemCursorIcon::Grab
+        )
+    );
 }
 
 /// If no vertex is hovered we make sure to
 /// have `None` set for the `HoveredEntity` resource.
 ///  For more information see the docs at the resource declaration.
-pub fn on_vertex_out(_out: On<Pointer<Out>>, mut hovered_entity: ResMut<HoveredEntity>) {
+pub fn on_vertex_out(
+    _out: On<Pointer<Out>>,
+    mut commands: Commands,
+    mut hovered_entity: ResMut<HoveredEntity>,
+    window: Single<Entity, With<Window>>,
+) {
     hovered_entity.0 = None;
+    commands.entity(window.into_inner()).insert(
+        CursorIcon::from(
+          SystemCursorIcon::Default
+        )
+    );
 }
 
 
