@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use crate::graph::constants::CANVAS_Z;
 
-
 /// Custom position for better readability
 /// and in-game position representation
 #[derive(Component, Default, Clone)]

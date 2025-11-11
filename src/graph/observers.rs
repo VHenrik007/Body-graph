@@ -1,4 +1,7 @@
-use bevy::{prelude::*, window::{CursorIcon, CursorOptions, SystemCursorIcon}};
+use bevy::{
+    prelude::*,
+    window::{CursorIcon, SystemCursorIcon},
+};
 
 use crate::graph::{
     bundles::VertexBundle,
@@ -25,7 +28,12 @@ pub fn on_bg_clicked(
             return;
         };
 
-        VertexBundle::spawn(&mut commands, meshes.into_inner(), materials.into_inner(), world_pos);
+        VertexBundle::spawn(
+            &mut commands,
+            meshes.into_inner(),
+            materials.into_inner(),
+            world_pos,
+        );
     }
 }
 
@@ -39,11 +47,9 @@ pub fn on_vertex_hovered(
     window: Single<Entity, With<Window>>,
 ) {
     hovered_entity.0 = Some(over.entity);
-    commands.entity(window.into_inner()).insert(
-        CursorIcon::from(
-          SystemCursorIcon::Grab
-        )
-    );
+    commands
+        .entity(window.into_inner())
+        .insert(CursorIcon::from(SystemCursorIcon::Grab));
 }
 
 /// If no vertex is hovered we make sure to
@@ -56,13 +62,10 @@ pub fn on_vertex_out(
     window: Single<Entity, With<Window>>,
 ) {
     hovered_entity.0 = None;
-    commands.entity(window.into_inner()).insert(
-        CursorIcon::from(
-          SystemCursorIcon::Default
-        )
-    );
+    commands
+        .entity(window.into_inner())
+        .insert(CursorIcon::from(SystemCursorIcon::Default));
 }
-
 
 /// When a vertex is renamed, we update the label and
 /// the text component that is a child of the vertex entity.

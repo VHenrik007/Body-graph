@@ -18,7 +18,7 @@ use updates::{
 };
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins(EguiPlugin::default())
+    app.add_plugins((EguiPlugin::default(), MeshPickingPlugin))
         .insert_resource(HoveredEntity(None))
         .insert_resource(RenamingState::default())
         .add_observer(on_vertex_renamed)

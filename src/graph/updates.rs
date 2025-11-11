@@ -3,7 +3,7 @@ use bevy_egui::{EguiContexts, egui};
 
 use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
-    constants::{EDGE_WIDTH, VERTEX_Z, EDGE_Z},
+    constants::{EDGE_WIDTH, EDGE_Z, VERTEX_Z},
     events::VertexRenameEvent,
     resources::RenamingState,
 };

@@ -44,7 +44,8 @@ impl VertexBundle {
     ) -> Entity {
         let entity_id = commands.spawn(Self::new(meshes, materials, position)).id();
 
-        commands.entity(entity_id)
+        commands
+            .entity(entity_id)
             .observe(on_vertex_clicked)
             .observe(on_vertex_hovered)
             .observe(on_vertex_out)
