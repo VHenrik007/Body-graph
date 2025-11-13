@@ -19,3 +19,5 @@ pub const CANVAS_Z: f32 = -2.0;
 pub const EDGE_Z: f32 = -1.0;
 pub const VERTEX_Z: f32 = 0.0;
 pub const VERTEX_TEXT_Z: f32 = 1.0;
+
+pub const RENAME_CLICK_COUNT: u32 = 2;

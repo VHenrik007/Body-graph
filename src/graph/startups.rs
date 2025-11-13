@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::graph::{
     components::{Canvas, TemporaryDirectedEdge},
     constants::{BG_COLOR, EDGE_SHAPE, TEMP_EDGE_COLOR},
-    observers::*,
+    picking_observers::*,
 };
 
 /// Spawns the canvas containing the graph.
@@ -18,7 +18,7 @@ pub fn spawn_canvas(
 
     commands
         .spawn((Canvas, Mesh2d(bg_mesh), MeshMaterial2d(bg_material)))
-        .observe(on_bg_clicked);
+        .observe(on_canvas_clicked);
 }
 
 /// Spawns the temporary edge with a `None` source.

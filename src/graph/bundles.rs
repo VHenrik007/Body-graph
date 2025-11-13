@@ -1,10 +1,13 @@
 use bevy::prelude::*;
 
 use crate::graph::{
-    components::{ClickTracker, Position, Vertex},
-    constants::{VERTEX_COLOR, VERTEX_LABEL_FONT_SIZE, VERTEX_SHAPE, VERTEX_SIZE, VERTEX_TEXT_Z},
-    observers::{
-        on_vertex_clicked, on_vertex_dragged, on_vertex_dragging, on_vertex_drop,
+    components::{ClickTracker, DirectedEdge, Position, Vertex},
+    constants::{
+        EDGE_COLOR, EDGE_SHAPE, VERTEX_COLOR, VERTEX_LABEL_FONT_SIZE, VERTEX_SHAPE, VERTEX_SIZE,
+        VERTEX_TEXT_Z,
+    },
+    picking_observers::{
+        on_edge_clicked, on_vertex_clicked, on_vertex_dragged, on_vertex_dragging, on_vertex_drop,
         on_vertex_hovered, on_vertex_out,
     },
 };
@@ -21,6 +24,7 @@ pub struct VertexBundle {
 }
 
 impl VertexBundle {
+    /// Vertices are spawned at a given location. Meshes and materials are fix.
     pub fn new(
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
@@ -36,6 +40,8 @@ impl VertexBundle {
         }
     }
 
+    /// Extends the spawning function with the observers that are true for all
+    /// vertices and adds the Text2d children.
     pub fn spawn(
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
@@ -52,6 +58,54 @@ impl VertexBundle {
             .observe(on_vertex_dragging)
             .observe(on_vertex_drop)
             .observe(on_vertex_dragged);
+
+        commands.entity(entity_id).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(""),
+                TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
+                Transform::from_xyz(0.0, -VERTEX_SIZE - 15.0, VERTEX_TEXT_Z),
+            ));
+        });
+
+        entity_id
+    }
+}
+
+/// A bundle for spawning edges
+#[derive(Bundle)]
+pub struct DirectedEdgeBundle {
+    directed_edge: DirectedEdge,
+    mesh: Mesh2d,
+    material: MeshMaterial2d<ColorMaterial>,
+}
+
+impl DirectedEdgeBundle {
+    /// Edges are defined by their from and to vertices.
+    pub fn new(
+        from: Entity,
+        to: Entity,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Self {
+        Self {
+            directed_edge: DirectedEdge { from, to },
+            mesh: Mesh2d(meshes.add(EDGE_SHAPE)),
+            material: MeshMaterial2d(materials.add(EDGE_COLOR)),
+        }
+    }
+
+    /// Extends the spawning function with the observers that are true for all
+    /// vertices and adds the Text2d children.
+    pub fn spawn(
+        from: Entity,
+        to: Entity,
+        commands: &mut Commands,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Entity {
+        let entity_id = commands.spawn(Self::new(from, to, meshes, materials)).id();
+
+        commands.entity(entity_id).observe(on_edge_clicked);
 
         commands.entity(entity_id).with_children(|parent| {
             parent.spawn((

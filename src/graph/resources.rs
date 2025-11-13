@@ -15,6 +15,7 @@ pub struct HoveredEntity(pub Option<Entity>);
 
 /// Used to determine the display features on renaming
 /// This can be used both for vertices and edges.
+/// TODO: Support multiple renames maybe.
 #[derive(Resource, Default, Debug)]
 pub struct RenamingState {
     pub active: bool,

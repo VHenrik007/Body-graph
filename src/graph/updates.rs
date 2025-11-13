@@ -1,11 +1,14 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    window::{CursorIcon, SystemCursorIcon},
+};
 use bevy_egui::{EguiContexts, egui};
 
 use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
     constants::{EDGE_WIDTH, EDGE_Z, VERTEX_Z},
-    events::VertexRenameEvent,
-    resources::RenamingState,
+    events::{VertexRenamedEvent, UpdateCursorIconEvent},
+    resources::{HoveredEntity, RenamingState},
 };
 
 /// Using an inner Position component for readability's sake, which is a `Vec2`
@@ -14,6 +17,30 @@ pub fn project_positions(mut positionables: Query<(&mut Transform, &Position), W
     for (mut transform, position) in &mut positionables {
         transform.translation = position.0.extend(VERTEX_Z);
     }
+}
+
+/// Cursor icon shoud change based on various
+/// entities and other keyboard inputs.
+pub fn cursor_icon_manager(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    hovered: Res<HoveredEntity>,
+) {
+    let is_ctrl_held =
+        { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
+
+    let mut new_cursor_icon = CursorIcon::from(SystemCursorIcon::Default);
+
+    if hovered.0.is_some() {
+        new_cursor_icon = CursorIcon::from(SystemCursorIcon::Grab);
+        if is_ctrl_held {
+            new_cursor_icon = CursorIcon::from(SystemCursorIcon::Crosshair);
+        }
+    }
+
+    commands.trigger(UpdateCursorIconEvent{
+        new_icon: new_cursor_icon
+    });
 }
 
 /// Updates the renaming state after a vertex is double clicked.
@@ -45,7 +72,7 @@ pub fn show_rename_input(
 
             if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 if let Some(entity) = renaming.entity {
-                    commands.trigger(VertexRenameEvent {
+                    commands.trigger(VertexRenamedEvent {
                         entity,
                         new_label: renaming.temp_text.clone(),
                     });
