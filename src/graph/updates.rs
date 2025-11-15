@@ -7,7 +7,7 @@ use bevy_egui::{EguiContexts, egui};
 use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
     constants::{EDGE_WIDTH, EDGE_Z, VERTEX_Z},
-    events::{VertexRenamedEvent, UpdateCursorIconEvent},
+    events::{UpdateCursorIconEvent, VertexRenamedEvent},
     resources::{HoveredEntity, RenamingState},
 };
 
@@ -38,8 +38,8 @@ pub fn cursor_icon_manager(
         }
     }
 
-    commands.trigger(UpdateCursorIconEvent{
-        new_icon: new_cursor_icon
+    commands.trigger(UpdateCursorIconEvent {
+        new_icon: new_cursor_icon,
     });
 }
 

@@ -13,8 +13,8 @@ mod startups;
 mod updates;
 
 use custom_observers::{
-    canvas_clicked, click_vertex, edge_clicked, on_vertex_renamed, vertex_drag_dropped,
-    vertex_dragging, update_cursor_icon, insert_vertex_on_edge
+    canvas_clicked, click_vertex, edge_clicked, insert_vertex_on_edge, on_vertex_renamed,
+    update_cursor_icon, vertex_drag_dropped, vertex_dragging,
 };
 use resources::{HoveredEntity, RenamingState};
 use startups::{spawn_canvas, spawn_temporary_edge};

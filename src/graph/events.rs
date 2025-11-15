@@ -1,6 +1,5 @@
 use bevy::{prelude::*, window::CursorIcon};
 
-
 /// Fires when a vertex rename is successful.
 #[derive(Event)]
 pub struct VertexRenamedEvent {
@@ -76,7 +75,7 @@ pub struct EdgeClickedEvent {
 pub struct UpdateCursorIconEvent {
     /// The cursor icon to insert as a component
     /// into the window.
-    pub new_icon: CursorIcon
+    pub new_icon: CursorIcon,
 }
 
 /// As a sub-case of clicking on an edge,
@@ -86,5 +85,5 @@ pub struct InsertVertexOnEdgeEvent {
     /// Which edge should be split.
     pub clicked_edge: Entity,
     /// Where should the new vertex be put.
-    pub world_position: Vec2
+    pub world_position: Vec2,
 }
