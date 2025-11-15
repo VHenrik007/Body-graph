@@ -62,7 +62,7 @@ pub fn on_vertex_out(
     };
 }
 
-/// If a vertex is hovered we save it into the
+/// If an edge is hovered we save it into the
 /// `HoveredEntity` resource. For more information
 /// see the docs at the resource declaration.
 pub fn on_edge_hovered(
@@ -78,7 +78,7 @@ pub fn on_edge_hovered(
     };
 }
 
-/// If no vertex is hovered we make sure to
+/// If no edge is hovered we make sure to
 /// have `None` set for the `HoveredEntity` resource.
 ///  For more information see the docs at the resource declaration.
 pub fn on_edge_out(

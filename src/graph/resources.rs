@@ -5,11 +5,8 @@ use bevy::prelude::*;
 /// like deciding whether to spawn a new vertex or
 /// connect to an existing one - that is being hovered over
 /// This should be set whenever bevy-picking detects hovering
-/// over a vertex.
-/// One could note that this is a bit more generic that it should be
-/// as it's not an entity with a `Vertex` component but any component.
-/// While it's not ideal, I have no idea if there's a proper way to
-/// do it or not, so until then it stays like so!
+/// over a vertex or edge. In both cases, separate things
+/// might be influenced like the cursor, or the drag-drop outcome.
 #[derive(Resource)]
 pub struct HoveredEntity(pub Option<Entity>);
 
