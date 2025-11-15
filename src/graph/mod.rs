@@ -13,7 +13,7 @@ mod startups;
 mod updates;
 
 use custom_observers::{
-    canvas_clicked, click_vertex, edge_clicked, insert_vertex_on_edge, on_vertex_renamed,
+    canvas_clicked, click_vertex, edge_clicked, on_vertex_renamed,
     update_cursor_icon, vertex_drag_dropped, vertex_dragging,
 };
 use resources::{HoveredEntity, RenamingState};
@@ -34,7 +34,6 @@ pub(super) fn plugin(app: &mut App) {
         .add_observer(vertex_dragging)
         .add_observer(edge_clicked)
         .add_observer(update_cursor_icon)
-        .add_observer(insert_vertex_on_edge)
         .add_systems(Startup, (spawn_canvas, spawn_temporary_edge))
         .add_systems(EguiPrimaryContextPass, show_rename_input)
         .add_systems(

@@ -8,6 +8,7 @@ pub const VERTEX_COLOR: Color = Color::srgb(0.3, 0.6, 0.9);
 pub const HOVERED_VERTEX_COLOR: Color = Color::srgb(0.4, 0.8, 1.0);
 
 pub const EDGE_COLOR: Color = Color::srgb(0.4, 0.45, 0.5);
+pub const HOVERED_EDGE_COLOR: Color = Color::srgb(0.6, 0.65, 0.6);
 pub const TEMP_EDGE_COLOR: Color = Color::srgb(0.95, 0.7, 0.2);
 pub const EDGE_SHAPE: Rectangle = Rectangle::from_length(1.0);
 pub const EDGE_WIDTH: f32 = 10.;

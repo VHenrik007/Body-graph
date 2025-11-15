@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::graph::{
     components::TemporaryDirectedEdge,
-    constants::{HOVERED_VERTEX_COLOR, VERTEX_COLOR},
+    constants::{HOVERED_VERTEX_COLOR, VERTEX_COLOR, HOVERED_EDGE_COLOR, EDGE_COLOR},
     events::{
         CanvasClickedEvent, EdgeClickedEvent, VertexClickedEvent, VertexDragDroppedEvent,
         VertexDraggingEvent,
@@ -57,6 +57,38 @@ pub fn on_vertex_out(
 ) {
     hovered_entity.0 = None;
     let new_material = materials.add(VERTEX_COLOR);
+    if let Ok(mut material) = materials_query.get_mut(out.entity) {
+        material.0 = new_material;
+    };
+}
+
+/// If a vertex is hovered we save it into the
+/// `HoveredEntity` resource. For more information
+/// see the docs at the resource declaration.
+pub fn on_edge_hovered(
+    over: On<Pointer<Over>>,
+    mut hovered_entity: ResMut<HoveredEntity>,
+    mut materials_query: Query<&mut MeshMaterial2d<ColorMaterial>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    hovered_entity.0 = Some(over.entity);
+    let new_material = materials.add(HOVERED_EDGE_COLOR);
+    if let Ok(mut material) = materials_query.get_mut(over.entity) {
+        material.0 = new_material;
+    };
+}
+
+/// If no vertex is hovered we make sure to
+/// have `None` set for the `HoveredEntity` resource.
+///  For more information see the docs at the resource declaration.
+pub fn on_edge_out(
+    out: On<Pointer<Out>>,
+    mut hovered_entity: ResMut<HoveredEntity>,
+    mut materials_query: Query<&mut MeshMaterial2d<ColorMaterial>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    hovered_entity.0 = None;
+    let new_material = materials.add(EDGE_COLOR);
     if let Ok(mut material) = materials_query.get_mut(out.entity) {
         material.0 = new_material;
     };

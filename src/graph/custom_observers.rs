@@ -5,7 +5,7 @@ use crate::graph::{
     components::{ClickTracker, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
     constants::{CONSECUTIVE_CLICK_TIME, RENAME_CLICK_COUNT},
     events::{
-        CanvasClickedEvent, EdgeClickedEvent, InsertVertexOnEdgeEvent, UpdateCursorIconEvent,
+        CanvasClickedEvent, EdgeClickedEvent, UpdateCursorIconEvent,
         VertexClickedEvent, VertexDragDroppedEvent, VertexDraggingEvent, VertexRenamedEvent,
     },
     helpers::{despawn_entity, update_entity_position},
@@ -129,19 +129,32 @@ pub fn vertex_drag_dropped(
     hovered: Res<HoveredEntity>,
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<ColorMaterial>>,
+    vertices: Query<Entity, With<Vertex>>,
+    edge_entities: Query<Entity, With<DirectedEdge>>,
+    edges: Query<&mut DirectedEdge>,
     mut commands: Commands,
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
 ) {
     let materials = materials.into_inner();
     let meshes = meshes.into_inner();
     if drag.button == PointerButton::Secondary {
-        let to_vertex;
-        if let Some(hovered_vertex) = hovered.0 {
-            to_vertex = hovered_vertex;
+        let to_entity;
+        if let Some(hovered_entity) = hovered.0 {
+            if let Ok(hovered_vertex) = vertices.get(hovered_entity) {
+                to_entity = hovered_vertex;
+            } else if let Ok(hovered_edge) = edge_entities.get(hovered_entity) {
+                if let Some(inserted_vertex) = insert_vertex_on_edge(meshes, materials, edges, &mut commands, drag.world_position, hovered_edge) {
+                    to_entity = inserted_vertex;
+                } else {
+                    return;
+                };
+            } else {
+                return;
+            }
         } else {
-            to_vertex = VertexBundle::spawn(&mut commands, meshes, materials, drag.world_position);
+            to_entity = VertexBundle::spawn(&mut commands, meshes, materials, drag.world_position);
         }
-        DirectedEdgeBundle::spawn(drag.entity, to_vertex, &mut commands, meshes, materials);
+        DirectedEdgeBundle::spawn(drag.entity, to_entity, &mut commands, meshes, materials);
         temp_edge.from = None;
     }
 }
@@ -152,6 +165,9 @@ pub fn edge_clicked(
     click: On<EdgeClickedEvent>,
     mut commands: Commands,
     mut hovered_entity: ResMut<HoveredEntity>,
+    edges: Query<&mut DirectedEdge>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>,
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
     let is_ctrl_held =
@@ -165,10 +181,9 @@ pub fn edge_clicked(
     }
 
     if click.button == PointerButton::Primary {
-        commands.trigger(InsertVertexOnEdgeEvent {
-            clicked_edge: click.entity,
-            world_position: click.world_position,
-        });
+        insert_vertex_on_edge(
+            meshes.into_inner(), materials.into_inner(), edges, &mut commands, click.world_position, click.entity
+        );
     }
 }
 
@@ -177,25 +192,25 @@ pub fn edge_clicked(
 /// `to` for the edge, and creating a new one
 /// between the new and previous vertices.
 pub fn insert_vertex_on_edge(
-    event: On<InsertVertexOnEdgeEvent>,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<ColorMaterial>>,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<ColorMaterial>,
     mut edges: Query<&mut DirectedEdge>,
-    mut commands: Commands,
-) {
-    let Ok(mut edge) = edges.get_mut(event.clicked_edge) else {
-        return;
+    commands: &mut Commands,
+    world_position: Vec2,
+    entity: Entity
+) -> Option<Entity> {
+    let Ok(mut edge) = edges.get_mut(entity) else {
+        return None;
     };
 
-    let meshes = meshes.into_inner();
-    let materials = materials.into_inner();
-
-    let new_vertex = VertexBundle::spawn(&mut commands, meshes, materials, event.world_position);
+    let new_vertex = VertexBundle::spawn(commands, meshes, materials, world_position);
 
     let prev_to = edge.to;
     edge.to = new_vertex;
 
-    DirectedEdgeBundle::spawn(new_vertex, prev_to, &mut commands, meshes, materials);
+    DirectedEdgeBundle::spawn(new_vertex, prev_to, commands, meshes, materials);
+
+    Some(new_vertex)
 }
 
 /// Draggin a vertex either repositions

@@ -25,14 +25,20 @@ pub fn cursor_icon_manager(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
     hovered: Res<HoveredEntity>,
+    vertices: Query<Entity, With<Vertex>>,
+    edges: Query<Entity, With<DirectedEdge>>,
 ) {
     let is_ctrl_held =
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
     let mut new_cursor_icon = CursorIcon::from(SystemCursorIcon::Default);
 
-    if hovered.0.is_some() {
-        new_cursor_icon = CursorIcon::from(SystemCursorIcon::Grab);
+    if let Some(hovered_entity) = hovered.0 {
+        if let Ok(_vertex) = vertices.get(hovered_entity) {
+            new_cursor_icon = CursorIcon::from(SystemCursorIcon::Grab);
+        } else if let Ok(_edge) = edges.get(hovered_entity) {
+            new_cursor_icon = CursorIcon::from(SystemCursorIcon::Cell);
+        }
         if is_ctrl_held {
             new_cursor_icon = CursorIcon::from(SystemCursorIcon::Crosshair);
         }

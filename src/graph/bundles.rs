@@ -8,7 +8,7 @@ use crate::graph::{
     },
     picking_observers::{
         on_edge_clicked, on_vertex_clicked, on_vertex_dragged, on_vertex_dragging, on_vertex_drop,
-        on_vertex_hovered, on_vertex_out,
+        on_vertex_hovered, on_vertex_out, on_edge_hovered, on_edge_out,
     },
 };
 
@@ -105,7 +105,10 @@ impl DirectedEdgeBundle {
     ) -> Entity {
         let entity_id = commands.spawn(Self::new(from, to, meshes, materials)).id();
 
-        commands.entity(entity_id).observe(on_edge_clicked);
+        commands.entity(entity_id)
+            .observe(on_edge_clicked)
+            .observe(on_edge_hovered)
+            .observe(on_edge_out);
 
         commands.entity(entity_id).with_children(|parent| {
             parent.spawn((

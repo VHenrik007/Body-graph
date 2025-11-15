@@ -77,13 +77,3 @@ pub struct UpdateCursorIconEvent {
     /// into the window.
     pub new_icon: CursorIcon,
 }
-
-/// As a sub-case of clicking on an edge,
-/// a vertex might be placed on it.
-#[derive(Event)]
-pub struct InsertVertexOnEdgeEvent {
-    /// Which edge should be split.
-    pub clicked_edge: Entity,
-    /// Where should the new vertex be put.
-    pub world_position: Vec2,
-}
