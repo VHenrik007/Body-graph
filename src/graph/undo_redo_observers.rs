@@ -1,13 +1,14 @@
 use bevy::prelude::*;
 
 use crate::graph::{
-    bundles::VertexBundle,
+    bundles::{DirectedEdgeBundle, VertexBundle},
     components::{Position, Vertex},
     events::VertexRenamedEvent,
     resources::UndoRedoStack,
     undo_redo::{
-        RedoAction, RedoVertexDeletionEvent, RedoVertexMoveEvent, RedoVertexRenameEvent,
-        RedoVertexSpawnEvent, UndoAction, UndoVertexDeletionEvent, UndoVertexMoveEvent,
+        EdgeDrawingAction, RedoAction, RedoEdgeDrawingEvent, RedoVertexDeletionEvent,
+        RedoVertexMoveEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction,
+        UndoEdgeDrawingEvent, UndoVertexDeletionEvent, UndoVertexMoveEvent,
         UndoVertexRenameEvent, UndoVertexSpawnEvent, VertexDeletionAction, VertexMoveAction,
         VertexRenameAction, VertexSpawnAction,
     },
@@ -167,5 +168,45 @@ pub fn on_redo_vertex_move(
     undo_redo.push_undo_without_clear(UndoAction::UndoVertexMoveAction(VertexMoveAction {
         entity: event.entity,
         position: current_position,
+    }));
+}
+
+pub fn on_redo_edge_draw(
+    event: On<RedoEdgeDrawingEvent>,
+    mut commands: Commands,
+    mut undo_redo: ResMut<UndoRedoStack>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let respawned_edge_id = commands
+        .entity(event.action.entity)
+        .insert(DirectedEdgeBundle::new(
+            event.action.from,
+            event.action.to,
+            &mut meshes,
+            &mut materials,
+        ))
+        .id();
+    DirectedEdgeBundle::add_children(&mut commands, respawned_edge_id);
+    undo_redo.push_undo_without_clear(UndoAction::UndoEdgeDrawingAction(EdgeDrawingAction {
+        entity: event.action.entity,
+        from: event.action.from,
+        to: event.action.to,
+    }));
+}
+
+pub fn on_undo_edge_draw(
+    event: On<UndoEdgeDrawingEvent>,
+    mut commands: Commands,
+    mut undo_redo: ResMut<UndoRedoStack>,
+) {
+    commands
+        .entity(event.action.entity)
+        .despawn_children()
+        .remove::<DirectedEdgeBundle>();
+    undo_redo.push_redo(RedoAction::RedoEdgeDrawingAction(EdgeDrawingAction {
+        entity: event.action.entity,
+        from: event.action.from,
+        to: event.action.to,
     }));
 }

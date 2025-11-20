@@ -143,6 +143,12 @@ impl DirectedEdgeBundle {
             .observe(on_edge_hovered)
             .observe(on_edge_out);
 
+        DirectedEdgeBundle::add_children(commands, entity_id);
+
+        entity_id
+    }
+
+    pub fn add_children(commands: &mut Commands, entity_id: Entity) {
         commands.entity(entity_id).with_children(|parent| {
             parent.spawn((
                 Text2d::new(""),
@@ -150,7 +156,5 @@ impl DirectedEdgeBundle {
                 Transform::from_xyz(0.0, -VERTEX_SIZE - 15.0, VERTEX_TEXT_Z),
             ));
         });
-
-        entity_id
     }
 }

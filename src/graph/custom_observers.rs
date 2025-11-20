@@ -10,7 +10,7 @@ use crate::graph::{
     },
     helpers::{despawn_entity, update_entity_position},
     resources::{HoveredEntity, RenamingState, UndoRedoStack},
-    undo_redo::{UndoAction, VertexRenameAction, VertexSpawnAction},
+    undo_redo::{EdgeDrawingAction, UndoAction, VertexRenameAction, VertexSpawnAction},
 };
 
 /// When a vertex is renamed, we update the label and
@@ -165,6 +165,25 @@ pub fn vertex_drag_dropped(
         if let Some(hovered_entity) = hovered.0 {
             if let Ok(hovered_vertex) = vertices.get(hovered_entity) {
                 to_entity = hovered_vertex;
+                let edge_entity = DirectedEdgeBundle::spawn(
+                    drag.entity,
+                    to_entity,
+                    &mut commands,
+                    meshes,
+                    materials,
+                );
+
+                undo_redo.push_undo(
+                    UndoAction::UndoEdgeDrawingAction(EdgeDrawingAction {
+                        entity: edge_entity,
+                        from: drag.entity,
+                        to: to_entity,
+                    }),
+                    &mut commands,
+                );
+
+                temp_edge.from = None;
+                return;
             } else if let Ok(hovered_edge) = edge_entities.get(hovered_entity) {
                 if let Some(inserted_vertex) = insert_vertex_on_edge(
                     meshes,

@@ -3,9 +3,9 @@ use bevy::prelude::*;
 use crate::graph::{
     helpers::despawn_entity,
     undo_redo::{
-        RedoAction, RedoVertexDeletionEvent, RedoVertexMoveEvent, RedoVertexRenameEvent,
-        RedoVertexSpawnEvent, UndoAction, UndoVertexDeletionEvent, UndoVertexMoveEvent,
-        UndoVertexRenameEvent, UndoVertexSpawnEvent,
+        RedoAction, RedoVertexDeletionEvent, RedoVertexMoveEvent,
+        RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction,
+        UndoVertexDeletionEvent, UndoVertexMoveEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent, RedoEdgeDrawingEvent, UndoEdgeDrawingEvent
     },
 };
 
@@ -123,6 +123,9 @@ impl UndoRedoStack {
                     position: v_move.position,
                 });
             }
+            UndoAction::UndoEdgeDrawingAction(draw) => {
+                commands.trigger(UndoEdgeDrawingEvent { action: draw })
+            }
         }
     }
 
@@ -130,7 +133,6 @@ impl UndoRedoStack {
     /// as all elements come from the undo stack, and the redo
     /// stack is cleared on a new user action.
     pub fn push_redo(&mut self, redo_action: RedoAction) {
-        println!("+ REDO: {:?}", redo_action);
         self.redo_stack.push(redo_action);
     }
 
@@ -140,8 +142,6 @@ impl UndoRedoStack {
         let Some(redo_action) = self.redo_stack.pop() else {
             return;
         };
-
-        println!("- REDO: {:?}", redo_action);
 
         match redo_action {
             RedoAction::RedoVertexRename(rename) => {
@@ -168,6 +168,9 @@ impl UndoRedoStack {
                     entity: v_move.entity,
                     position: v_move.position,
                 });
+            }
+            RedoAction::RedoEdgeDrawingAction(draw) => {
+                commands.trigger(RedoEdgeDrawingEvent { action: draw });
             }
         }
     }
