@@ -6,7 +6,7 @@ use bevy_egui::{EguiContexts, egui};
 
 use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
-    constants::{EDGE_WIDTH, EDGE_Z, VERTEX_Z},
+    constants::{EDGE_WIDTH, EDGE_Z, HIDDEN_EDGE_Z, VERTEX_Z},
     events::{UpdateCursorIconEvent, VertexRenamedEvent},
     resources::{HoveredEntity, RenamingState, UndoRedoStack},
 };
@@ -111,6 +111,16 @@ pub fn undo_redo_system(
     }
 }
 
+pub fn button_press_debug_system(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    undo_redo: Res<UndoRedoStack>,
+) {
+    if keyboard.just_pressed(KeyCode::KeyD) {
+        println!("=UNDO STACK: {:?}", undo_redo.undo_stack);
+        println!("=REDO STACK: {:?}", undo_redo.redo_stack);
+    }
+}
+
 /// Each edge should form a segment between its vertices.
 pub fn update_edge_transforms(
     mut commands: Commands,
@@ -125,9 +135,27 @@ pub fn update_edge_transforms(
             continue;
         };
 
-        // This branch is reached if any of the vertices is missing.
+        // This code is reached if any of the vertices is missing.
         // This occurs on deleting a vertex, when the edge should be
         // deleted too.
+
+        // However, with the undo/redo logic, we must
+        // differentiate between logical deletion (still redoable)
+        // and actual deletion. Logical deletion can just move the
+        // edge behind the canvas.
+        if let Ok(_from_entity) = commands.get_entity(edge.from)
+            && let Ok(_to_entity) = commands.get_entity(edge.to)
+        {
+            apply_edge_transform_behind_canvas(
+                Vec2::default(),
+                Vec2::default(),
+                transform.into_inner(),
+            );
+            continue;
+        }
+
+        // If some of the vertex entities are actually despawned, then
+        // despawn this too.
         if let Ok(mut entity) = commands.get_entity(entity) {
             entity.despawn();
         }
@@ -160,6 +188,19 @@ fn apply_edge_transform(from_pos: Vec2, to_pos: Vec2, transform: &mut Transform)
     let angle = direction.y.atan2(direction.x);
 
     transform.translation = (from_pos + direction / 2.0).extend(EDGE_Z);
+    transform.rotation = Quat::from_rotation_z(angle);
+    transform.scale.x = length;
+    transform.scale.y = EDGE_WIDTH;
+}
+
+/// Transforms the edge such that it is not visible/pickable.
+/// Only applicable when one of the vertices are deleted but still found in the redo stack.
+fn apply_edge_transform_behind_canvas(from_pos: Vec2, to_pos: Vec2, transform: &mut Transform) {
+    let direction = to_pos - from_pos;
+    let length = direction.length();
+    let angle = direction.y.atan2(direction.x);
+
+    transform.translation = (from_pos + direction / 2.0).extend(HIDDEN_EDGE_Z);
     transform.rotation = Quat::from_rotation_z(angle);
     transform.scale.x = length;
     transform.scale.y = EDGE_WIDTH;

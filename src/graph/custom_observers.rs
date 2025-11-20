@@ -10,7 +10,7 @@ use crate::graph::{
     },
     helpers::{despawn_entity, update_entity_position},
     resources::{HoveredEntity, RenamingState, UndoRedoStack},
-    undo_redo::{UndoAction, VertexRenameAction},
+    undo_redo::{UndoAction, VertexRenameAction, VertexSpawnAction},
 };
 
 /// When a vertex is renamed, we update the label and
@@ -20,6 +20,7 @@ pub fn on_vertex_renamed(
     mut vertex_query: Query<(&mut Vertex, &Children)>,
     mut text_query: Query<&mut Text2d>,
     mut undo_redo: ResMut<UndoRedoStack>,
+    mut commands: Commands,
 ) {
     let new_label = event.new_label.clone();
     let vertex_entity = event.entity;
@@ -40,10 +41,11 @@ pub fn on_vertex_renamed(
 
     if event.manual {
         undo_redo.push_undo(
-            UndoAction::UndoRename(VertexRenameAction {
+            UndoAction::UndoVertexRename(VertexRenameAction {
                 entity: event.entity,
                 name: old_label,
             }),
+            &mut commands,
         );
     }
 }
@@ -121,13 +123,21 @@ pub fn canvas_clicked(
     mut commands: Commands,
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<ColorMaterial>>,
+    mut undo_redo: ResMut<UndoRedoStack>,
 ) {
     if click.button == PointerButton::Primary {
-        VertexBundle::spawn(
+        let entity_id = VertexBundle::spawn(
             &mut commands,
             meshes.into_inner(),
             materials.into_inner(),
             click.world_position,
+        );
+        undo_redo.push_undo(
+            UndoAction::UndoVertexSpawn(VertexSpawnAction {
+                entity: entity_id,
+                position: click.world_position,
+            }),
+            &mut commands,
         );
     }
 }
@@ -146,6 +156,7 @@ pub fn vertex_drag_dropped(
     edges: Query<&mut DirectedEdge>,
     mut commands: Commands,
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
+    mut undo_redo: ResMut<UndoRedoStack>,
 ) {
     let materials = materials.into_inner();
     let meshes = meshes.into_inner();
@@ -172,6 +183,7 @@ pub fn vertex_drag_dropped(
             }
         } else {
             to_entity = VertexBundle::spawn(&mut commands, meshes, materials, drag.world_position);
+            undo_redo.push_undo(UndoAction::UndoVertexSpawn(VertexSpawnAction { entity: to_entity, position: drag.world_position }), &mut commands);
         }
         DirectedEdgeBundle::spawn(drag.entity, to_entity, &mut commands, meshes, materials);
         temp_edge.from = None;
@@ -193,7 +205,7 @@ pub fn edge_clicked(
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
     if is_ctrl_held {
-        despawn_entity(commands, click.entity);
+        despawn_entity(&mut commands, click.entity);
         // For updating the cursor icon
         hovered_entity.0 = None;
         return;

@@ -20,10 +20,13 @@ use custom_observers::{
 };
 use resources::{HoveredEntity, RenamingState, UndoRedoStack};
 use startups::{spawn_canvas, spawn_temporary_edge};
-use undo_redo_observers::{on_redo_vertex_rename, on_undo_vertex_rename};
+use undo_redo_observers::{
+    on_redo_vertex_deletion, on_redo_vertex_rename, on_undo_vertex_deletion, on_undo_vertex_rename,
+    on_undo_vertex_spawn, on_redo_vertex_spawn
+};
 use updates::{
-    cursor_icon_manager, project_positions, show_rename_input, undo_redo_system,
-    update_edge_transforms, update_temp_edge_transform,
+    button_press_debug_system, cursor_icon_manager, project_positions, show_rename_input,
+    undo_redo_system, update_edge_transforms, update_temp_edge_transform,
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -40,6 +43,10 @@ pub(super) fn plugin(app: &mut App) {
         .add_observer(update_cursor_icon)
         .add_observer(on_redo_vertex_rename)
         .add_observer(on_undo_vertex_rename)
+        .add_observer(on_undo_vertex_deletion)
+        .add_observer(on_redo_vertex_deletion)
+        .add_observer(on_undo_vertex_spawn)
+        .add_observer(on_redo_vertex_spawn)
         .add_systems(Startup, (spawn_canvas, spawn_temporary_edge))
         .add_systems(EguiPrimaryContextPass, show_rename_input)
         .add_systems(
@@ -50,6 +57,7 @@ pub(super) fn plugin(app: &mut App) {
                 update_temp_edge_transform,
                 cursor_icon_manager,
                 undo_redo_system,
+                button_press_debug_system,
             ),
         );
 }

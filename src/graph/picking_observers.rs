@@ -1,14 +1,15 @@
 use bevy::prelude::*;
 
 use crate::graph::{
-    components::TemporaryDirectedEdge,
+    bundles::VertexBundle,
+    components::{TemporaryDirectedEdge, Vertex},
     constants::{EDGE_COLOR, HOVERED_EDGE_COLOR, HOVERED_VERTEX_COLOR, VERTEX_COLOR},
     events::{
         CanvasClickedEvent, EdgeClickedEvent, VertexClickedEvent, VertexDragDroppedEvent,
         VertexDraggingEvent,
     },
-    helpers::despawn_entity,
-    resources::HoveredEntity,
+    resources::{HoveredEntity, UndoRedoStack},
+    undo_redo::{UndoAction, VertexDeletionAction},
 };
 
 /// Clicking the canvas results in a new Vertex.
@@ -100,7 +101,9 @@ pub fn on_vertex_clicked(
     click: On<Pointer<Click>>,
     camera: Single<(&Camera, &GlobalTransform)>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    vertices: Query<&Vertex>,
     mut hovered_entity: ResMut<HoveredEntity>,
+    mut undo_redo: ResMut<UndoRedoStack>,
     mut commands: Commands,
 ) {
     let (camera, camera_transform) = camera.into_inner();
@@ -113,9 +116,22 @@ pub fn on_vertex_clicked(
             { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
         if is_ctrl_held {
-            despawn_entity(commands, click.entity);
-            // For updating the cursor icon
-            hovered_entity.0 = None;
+            if let Ok(vertex) = vertices.get(click.entity) {
+                commands
+                    .entity(click.entity)
+                    .despawn_children()
+                    .remove::<VertexBundle>();
+                undo_redo.push_undo(
+                    UndoAction::UndoVertexDeletion(VertexDeletionAction {
+                        entity: click.entity,
+                        position: world_pos,
+                        vertex_label: vertex.label.to_string(),
+                    }),
+                    &mut commands,
+                );
+                // For updating the cursor icon
+                hovered_entity.0 = None;
+            }
             return;
         }
 

@@ -13,7 +13,7 @@ use crate::graph::{
 };
 
 /// A bundle for spawning a vertex in the graph.
-#[derive(Bundle)]
+#[derive(Bundle, Debug)]
 pub struct VertexBundle {
     vertex: Vertex,
     click_tracker: ClickTracker,
@@ -32,6 +32,24 @@ impl VertexBundle {
     ) -> Self {
         Self {
             vertex: Vertex::default(),
+            click_tracker: ClickTracker::default(),
+            font: TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
+            mesh: Mesh2d(meshes.add(VERTEX_SHAPE)),
+            material: MeshMaterial2d(materials.add(VERTEX_COLOR)),
+            position: Position(position),
+        }
+    }
+
+    pub fn new_with_label(
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<ColorMaterial>,
+        position: Vec2,
+        label: &str,
+    ) -> Self {
+        Self {
+            vertex: Vertex {
+                label: label.to_string(),
+            },
             click_tracker: ClickTracker::default(),
             font: TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
             mesh: Mesh2d(meshes.add(VERTEX_SHAPE)),
@@ -59,6 +77,12 @@ impl VertexBundle {
             .observe(on_vertex_drop)
             .observe(on_vertex_dragged);
 
+        VertexBundle::add_children(commands, entity_id);
+
+        entity_id
+    }
+
+    pub fn add_children(commands: &mut Commands, entity_id: Entity) {
         commands.entity(entity_id).with_children(|parent| {
             parent.spawn((
                 Text2d::new(""),
@@ -66,8 +90,16 @@ impl VertexBundle {
                 Transform::from_xyz(0.0, -VERTEX_SIZE - 15.0, VERTEX_TEXT_Z),
             ));
         });
+    }
 
-        entity_id
+    pub fn add_children_with_label(commands: &mut Commands, entity_id: Entity, label: &str) {
+        commands.entity(entity_id).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(label),
+                TextFont::from_font_size(VERTEX_LABEL_FONT_SIZE),
+                Transform::from_xyz(0.0, -VERTEX_SIZE - 15.0, VERTEX_TEXT_Z),
+            ));
+        });
     }
 }
 

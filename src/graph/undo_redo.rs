@@ -15,18 +15,35 @@ pub struct VertexRenameAction {
     pub name: String,
 }
 
+#[derive(Debug)]
+pub struct VertexDeletionAction {
+    pub entity: Entity,
+    pub position: Vec2,
+    pub vertex_label: String,
+}
+
+#[derive(Debug)]
+pub struct VertexSpawnAction {
+    pub entity: Entity,
+    pub position: Vec2,
+}
+
 // Undo/Redo enums
 // These enums contain some action variant are they themselves are
 // stored in the `UndoRedoStack` stacks.
 
 #[derive(Debug)]
 pub enum UndoAction {
-    UndoRename(VertexRenameAction),
+    UndoVertexRename(VertexRenameAction),
+    UndoVertexDeletion(VertexDeletionAction),
+    UndoVertexSpawn(VertexSpawnAction),
 }
 
 #[derive(Debug)]
 pub enum RedoAction {
-    RedoRename(VertexRenameAction),
+    RedoVertexRename(VertexRenameAction),
+    RedoVertexDeletion(VertexDeletionAction),
+    RedoVertexSpawn(VertexSpawnAction),
 }
 
 // Events
@@ -44,4 +61,30 @@ pub struct UndoVertexRenameEvent {
 pub struct RedoVertexRenameEvent {
     pub entity: Entity,
     pub name: String,
+}
+
+#[derive(Event)]
+pub struct UndoVertexDeletionEvent {
+    pub entity: Entity,
+    pub position: Vec2,
+    pub vertex_label: String,
+}
+
+#[derive(Event)]
+pub struct RedoVertexDeletionEvent {
+    pub entity: Entity,
+    pub position: Vec2,
+    pub vertex_label: String,
+}
+
+#[derive(Event)]
+pub struct UndoVertexSpawnEvent {
+    pub entity: Entity,
+    pub position: Vec2,
+}
+
+#[derive(Event)]
+pub struct RedoVertexSpawnEvent {
+    pub entity: Entity,
+    pub position: Vec2,
 }

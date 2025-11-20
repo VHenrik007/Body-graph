@@ -4,7 +4,7 @@ use crate::graph::constants::CANVAS_Z;
 
 /// Custom position for better readability
 /// and in-game position representation
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Debug)]
 #[require(Transform)]
 pub struct Position(pub Vec2);
 
@@ -44,7 +44,7 @@ pub struct Canvas;
 
 /// Used for deciding for double (or any other) clicking
 /// events.
-#[derive(Component, Default)]
+#[derive(Component, Default, Debug)]
 pub struct ClickTracker {
     pub last_click_time: Option<f64>,
     pub click_count: u32,

@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 
-use crate::graph::undo_redo::{
-    RedoAction, RedoVertexRenameEvent, UndoAction, UndoVertexRenameEvent,
+use crate::graph::{
+    helpers::despawn_entity,
+    undo_redo::{
+        RedoAction, RedoVertexDeletionEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction, UndoVertexDeletionEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent
+    },
 };
 
 /// The currently hovered entity
@@ -50,17 +53,36 @@ impl Default for UndoRedoStack {
 impl UndoRedoStack {
     /// Pushing an undo also clears redo as a new action after multiple undo
     /// operations might invalidate a redo in the stack.
-    pub fn push_undo(&mut self, undo_action: UndoAction) {
+    pub fn push_undo(&mut self, undo_action: UndoAction, commands: &mut Commands) {
+        println!("+ UNDO: {:?}", undo_action);
+
         if self.undo_stack.len() == self.max_size {
-            self.undo_stack.remove(0);
+            let action = self.undo_stack.remove(0);
+            match action {
+                UndoAction::UndoVertexDeletion(deletion_action) => {
+                    despawn_entity(commands, deletion_action.entity);
+                }
+                _ => {}
+            }
         }
         self.undo_stack.push(undo_action);
+
+        for redo_action in self.redo_stack.iter_mut() {
+            match redo_action {
+                RedoAction::RedoVertexSpawn(spawn_action) => {
+                    despawn_entity(commands, spawn_action.entity);
+                }
+                _ => {}
+            }
+        }
+
         self.redo_stack.clear();
     }
 
     /// This push does not clear the redo stack. It's used only for redo actions,
     /// as switching back&forth between redo and undo is okay.
     pub fn push_undo_without_clear(&mut self, undo_action: UndoAction) {
+        println!("+ UNDO w/o c.: {:?}", undo_action);
         self.undo_stack.push(undo_action);
     }
 
@@ -71,11 +93,26 @@ impl UndoRedoStack {
             return;
         };
 
+        println!("- UNDO: {:?}", undo_action);
+
         match undo_action {
-            UndoAction::UndoRename(rename) => {
+            UndoAction::UndoVertexRename(rename) => {
                 commands.trigger(UndoVertexRenameEvent {
                     entity: rename.entity,
                     name: rename.name,
+                });
+            }
+            UndoAction::UndoVertexDeletion(deletion) => {
+                commands.trigger(UndoVertexDeletionEvent {
+                    entity: deletion.entity,
+                    position: deletion.position,
+                    vertex_label: deletion.vertex_label,
+                });
+            }
+            UndoAction::UndoVertexSpawn(spawn) => {
+                commands.trigger(UndoVertexSpawnEvent {
+                    entity: spawn.entity,
+                    position: spawn.position,
                 });
             }
         }
@@ -85,6 +122,7 @@ impl UndoRedoStack {
     /// as all elements come from the undo stack, and the redo
     /// stack is cleared on a new user action.
     pub fn push_redo(&mut self, redo_action: RedoAction) {
+        println!("+ REDO: {:?}", redo_action);
         self.redo_stack.push(redo_action);
     }
 
@@ -95,11 +133,26 @@ impl UndoRedoStack {
             return;
         };
 
+        println!("- REDO: {:?}", redo_action);
+
         match redo_action {
-            RedoAction::RedoRename(rename) => {
+            RedoAction::RedoVertexRename(rename) => {
                 commands.trigger(RedoVertexRenameEvent {
                     entity: rename.entity,
                     name: rename.name,
+                });
+            },
+            RedoAction::RedoVertexDeletion(deletion) => {
+                commands.trigger(RedoVertexDeletionEvent {
+                    entity: deletion.entity,
+                    position: deletion.position,
+                    vertex_label: deletion.vertex_label,
+                });
+            },
+            RedoAction::RedoVertexSpawn(spawn) => {
+                commands.trigger(RedoVertexSpawnEvent {
+                    entity: spawn.entity,
+                    position: spawn.position,
                 });
             }
         }

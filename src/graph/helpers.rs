@@ -4,7 +4,7 @@ use crate::graph::components::Position;
 
 /// Despawning an entity requires it to be an entity command
 /// first, which I just decided to put here.
-pub fn despawn_entity(mut commands: Commands, entity: Entity) {
+pub fn despawn_entity(commands: &mut Commands, entity: Entity) {
     if let Ok(mut entity) = commands.get_entity(entity) {
         entity.despawn();
     }
