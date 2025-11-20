@@ -3,9 +3,7 @@ use bevy::prelude::*;
 use crate::graph::{
     helpers::despawn_entity,
     undo_redo::{
-        RedoAction, RedoVertexDeletionEvent, RedoVertexMoveEvent,
-        RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction,
-        UndoVertexDeletionEvent, UndoVertexMoveEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent, RedoEdgeDrawingEvent, UndoEdgeDrawingEvent
+        RedoAction, RedoEdgeDeletionEvent, RedoEdgeDrawingEvent, RedoVertexDeletionEvent, RedoVertexMoveEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction, UndoEdgeDeletionEvent, UndoEdgeDrawingEvent, UndoVertexDeletionEvent, UndoVertexMoveEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent
     },
 };
 
@@ -56,7 +54,6 @@ impl UndoRedoStack {
     /// Pushing an undo also clears redo as a new action after multiple undo
     /// operations might invalidate a redo in the stack.
     pub fn push_undo(&mut self, undo_action: UndoAction, commands: &mut Commands) {
-        println!("+ UNDO: {:?}", undo_action);
 
         if self.undo_stack.len() == self.max_size {
             let action = self.undo_stack.remove(0);
@@ -84,7 +81,6 @@ impl UndoRedoStack {
     /// This push does not clear the redo stack. It's used only for redo actions,
     /// as switching back&forth between redo and undo is okay.
     pub fn push_undo_without_clear(&mut self, undo_action: UndoAction) {
-        println!("+ UNDO w/o c.: {:?}", undo_action);
         self.undo_stack.push(undo_action);
     }
 
@@ -94,8 +90,6 @@ impl UndoRedoStack {
         let Some(undo_action) = self.undo_stack.pop() else {
             return;
         };
-
-        println!("- UNDO: {:?}", undo_action);
 
         match undo_action {
             UndoAction::UndoVertexRename(rename) => {
@@ -125,6 +119,9 @@ impl UndoRedoStack {
             }
             UndoAction::UndoEdgeDrawingAction(draw) => {
                 commands.trigger(UndoEdgeDrawingEvent { action: draw })
+            }
+            UndoAction::UndoEdgeDeletionAction(deletion) => {
+                commands.trigger(UndoEdgeDeletionEvent {action: deletion});
             }
         }
     }
@@ -171,6 +168,9 @@ impl UndoRedoStack {
             }
             RedoAction::RedoEdgeDrawingAction(draw) => {
                 commands.trigger(RedoEdgeDrawingEvent { action: draw });
+            }
+            RedoAction::RedoEdgeDeletionAction(deletion) => {
+                commands.trigger(RedoEdgeDeletionEvent { action: deletion });
             }
         }
     }

@@ -10,7 +10,7 @@ use crate::graph::{
         RedoVertexMoveEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction,
         UndoEdgeDrawingEvent, UndoVertexDeletionEvent, UndoVertexMoveEvent,
         UndoVertexRenameEvent, UndoVertexSpawnEvent, VertexDeletionAction, VertexMoveAction,
-        VertexRenameAction, VertexSpawnAction,
+        VertexRenameAction, VertexSpawnAction, EdgeDeletionAction, UndoEdgeDeletionEvent, RedoEdgeDeletionEvent
     },
 };
 
@@ -205,6 +205,46 @@ pub fn on_undo_edge_draw(
         .despawn_children()
         .remove::<DirectedEdgeBundle>();
     undo_redo.push_redo(RedoAction::RedoEdgeDrawingAction(EdgeDrawingAction {
+        entity: event.action.entity,
+        from: event.action.from,
+        to: event.action.to,
+    }));
+}
+
+pub fn on_undo_edge_deletion(
+    event: On<UndoEdgeDeletionEvent>,
+    mut commands: Commands,
+    mut undo_redo: ResMut<UndoRedoStack>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let respawned_edge_id = commands
+        .entity(event.action.entity)
+        .insert(DirectedEdgeBundle::new(
+            event.action.from,
+            event.action.to,
+            &mut meshes,
+            &mut materials
+        ))
+        .id();
+    DirectedEdgeBundle::add_children(&mut commands, respawned_edge_id);
+    undo_redo.push_redo(RedoAction::RedoEdgeDeletionAction(EdgeDeletionAction {
+        entity: event.action.entity,
+        from: event.action.from,
+        to: event.action.to
+    }));
+}
+
+pub fn on_redo_edge_deletion(
+    event: On<RedoEdgeDeletionEvent>,
+    mut commands: Commands,
+    mut undo_redo: ResMut<UndoRedoStack>,
+) {
+    commands
+        .entity(event.action.entity)
+        .despawn_children()
+        .remove::<DirectedEdgeBundle>();
+    undo_redo.push_undo_without_clear(UndoAction::UndoEdgeDeletionAction(EdgeDeletionAction {
         entity: event.action.entity,
         from: event.action.from,
         to: event.action.to,

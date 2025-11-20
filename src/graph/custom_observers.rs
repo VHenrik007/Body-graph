@@ -8,9 +8,9 @@ use crate::graph::{
         CanvasClickedEvent, EdgeClickedEvent, UpdateCursorIconEvent, VertexClickedEvent,
         VertexDragDroppedEvent, VertexDraggingEvent, VertexRenamedEvent,
     },
-    helpers::{despawn_entity, update_entity_position},
+    helpers::update_entity_position,
     resources::{HoveredEntity, RenamingState, UndoRedoStack},
-    undo_redo::{EdgeDrawingAction, UndoAction, VertexRenameAction, VertexSpawnAction},
+    undo_redo::{EdgeDeletionAction, EdgeDrawingAction, UndoAction, VertexRenameAction, VertexSpawnAction},
 };
 
 /// When a vertex is renamed, we update the label and
@@ -225,12 +225,24 @@ pub fn edge_clicked(
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<ColorMaterial>>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    mut undo_redo: ResMut<UndoRedoStack>,
 ) {
     let is_ctrl_held =
         { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
 
     if is_ctrl_held {
-        despawn_entity(&mut commands, click.entity);
+        let Ok(edge) = edges.get(click.entity) else {
+            return
+        };
+        commands
+            .entity(click.entity)
+            .despawn_children()
+            .remove::<DirectedEdgeBundle>();
+        undo_redo.push_undo(UndoAction::UndoEdgeDeletionAction(EdgeDeletionAction {
+            entity: click.entity,
+            from: edge.from,
+            to: edge.to,
+        }), &mut commands);
         // For updating the cursor icon
         hovered_entity.0 = None;
         return;
