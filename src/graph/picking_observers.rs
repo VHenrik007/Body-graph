@@ -9,7 +9,7 @@ use crate::graph::{
         VertexDraggingEvent,
     },
     resources::{HoveredEntity, UndoRedoStack},
-    undo_redo::{UndoAction, VertexDeletionAction},
+    undo_redo::{UndoAction, VertexDeletionAction, VertexMoveAction},
 };
 
 /// Clicking the canvas results in a new Vertex.
@@ -150,16 +150,27 @@ pub fn on_vertex_dragged(
     drag: On<Pointer<DragStart>>,
     camera: Single<(&Camera, &GlobalTransform)>,
     mut temp_edge: Single<&mut TemporaryDirectedEdge>,
+    mut undo_redo: ResMut<UndoRedoStack>,
+    mut commands: Commands,
 ) {
-    if drag.button == PointerButton::Secondary {
-        let (camera, camera_transform) = camera.into_inner();
+    let (camera, camera_transform) = camera.into_inner();
+    let Ok(world_pos) =
+        camera.viewport_to_world_2d(camera_transform, drag.pointer_location.position)
+    else {
+        return;
+    };
 
-        if let Ok(world_pos) =
-            camera.viewport_to_world_2d(camera_transform, drag.pointer_location.position)
-        {
-            temp_edge.from = Some(drag.entity);
-            temp_edge.to = world_pos;
-        }
+    if drag.button == PointerButton::Secondary {
+        temp_edge.from = Some(drag.entity);
+        temp_edge.to = world_pos;
+    } else if drag.button == PointerButton::Primary {
+        undo_redo.push_undo(
+            UndoAction::UndoVertexMoveAction(VertexMoveAction {
+                entity: drag.entity,
+                position: world_pos,
+            }),
+            &mut commands,
+        );
     }
 }
 

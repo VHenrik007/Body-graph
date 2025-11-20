@@ -21,8 +21,8 @@ use custom_observers::{
 use resources::{HoveredEntity, RenamingState, UndoRedoStack};
 use startups::{spawn_canvas, spawn_temporary_edge};
 use undo_redo_observers::{
-    on_redo_vertex_deletion, on_redo_vertex_rename, on_undo_vertex_deletion, on_undo_vertex_rename,
-    on_undo_vertex_spawn, on_redo_vertex_spawn
+    on_redo_vertex_deletion, on_redo_vertex_move, on_redo_vertex_rename, on_redo_vertex_spawn,
+    on_undo_vertex_deletion, on_undo_vertex_move, on_undo_vertex_rename, on_undo_vertex_spawn,
 };
 use updates::{
     button_press_debug_system, cursor_icon_manager, project_positions, show_rename_input,
@@ -47,6 +47,8 @@ pub(super) fn plugin(app: &mut App) {
         .add_observer(on_redo_vertex_deletion)
         .add_observer(on_undo_vertex_spawn)
         .add_observer(on_redo_vertex_spawn)
+        .add_observer(on_redo_vertex_move)
+        .add_observer(on_undo_vertex_move)
         .add_systems(Startup, (spawn_canvas, spawn_temporary_edge))
         .add_systems(EguiPrimaryContextPass, show_rename_input)
         .add_systems(

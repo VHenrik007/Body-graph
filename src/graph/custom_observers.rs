@@ -183,7 +183,13 @@ pub fn vertex_drag_dropped(
             }
         } else {
             to_entity = VertexBundle::spawn(&mut commands, meshes, materials, drag.world_position);
-            undo_redo.push_undo(UndoAction::UndoVertexSpawn(VertexSpawnAction { entity: to_entity, position: drag.world_position }), &mut commands);
+            undo_redo.push_undo(
+                UndoAction::UndoVertexSpawn(VertexSpawnAction {
+                    entity: to_entity,
+                    position: drag.world_position,
+                }),
+                &mut commands,
+            );
         }
         DirectedEdgeBundle::spawn(drag.entity, to_entity, &mut commands, meshes, materials);
         temp_edge.from = None;

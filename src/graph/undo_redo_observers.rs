@@ -2,13 +2,14 @@ use bevy::prelude::*;
 
 use crate::graph::{
     bundles::VertexBundle,
-    components::Vertex,
+    components::{Position, Vertex},
     events::VertexRenamedEvent,
     resources::UndoRedoStack,
     undo_redo::{
-        RedoAction, RedoVertexDeletionEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent,
-        UndoAction, UndoVertexDeletionEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent,
-        VertexDeletionAction, VertexRenameAction, VertexSpawnAction,
+        RedoAction, RedoVertexDeletionEvent, RedoVertexMoveEvent, RedoVertexRenameEvent,
+        RedoVertexSpawnEvent, UndoAction, UndoVertexDeletionEvent, UndoVertexMoveEvent,
+        UndoVertexRenameEvent, UndoVertexSpawnEvent, VertexDeletionAction, VertexMoveAction,
+        VertexRenameAction, VertexSpawnAction,
     },
 };
 
@@ -132,5 +133,39 @@ pub fn on_redo_vertex_spawn(
     undo_redo.push_undo_without_clear(UndoAction::UndoVertexSpawn(VertexSpawnAction {
         entity: event.entity,
         position: event.position,
+    }));
+}
+
+pub fn on_undo_vertex_move(
+    event: On<UndoVertexMoveEvent>,
+    mut vertex_positions: Query<&mut Position, With<Vertex>>,
+    mut undo_redo: ResMut<UndoRedoStack>,
+) {
+    let Ok(mut vertex_position) = vertex_positions.get_mut(event.entity) else {
+        return;
+    };
+
+    let current_position = vertex_position.0;
+    vertex_position.0 = event.position;
+    undo_redo.push_redo(RedoAction::RedoVertexMoveAction(VertexMoveAction {
+        entity: event.entity,
+        position: current_position,
+    }));
+}
+
+pub fn on_redo_vertex_move(
+    event: On<RedoVertexMoveEvent>,
+    mut vertex_positions: Query<&mut Position, With<Vertex>>,
+    mut undo_redo: ResMut<UndoRedoStack>,
+) {
+    let Ok(mut vertex_position) = vertex_positions.get_mut(event.entity) else {
+        return;
+    };
+
+    let current_position = vertex_position.0;
+    vertex_position.0 = event.position;
+    undo_redo.push_undo_without_clear(UndoAction::UndoVertexMoveAction(VertexMoveAction {
+        entity: event.entity,
+        position: current_position,
     }));
 }
