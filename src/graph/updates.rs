@@ -93,6 +93,7 @@ pub fn show_rename_input(
         });
 }
 
+/// Checks for classic undo/redo shortcuts.
 pub fn undo_redo_system(
     commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,

@@ -25,25 +25,49 @@ pub struct RenamingState {
     pub screen_position: Vec2,
 }
 
-#[derive(Resource, Default, Debug)]
+/// The stack resource for managing undo/redo operations
+/// Contains redo and undo separately, and pushes/pops
+/// fron one onto/from another.
+#[derive(Resource, Debug)]
 pub struct UndoRedoStack {
+    max_size: usize,
+    /// Undo actions
     pub undo_stack: Vec<UndoAction>,
+    /// Redo actions
     pub redo_stack: Vec<RedoAction>,
 }
 
-impl UndoRedoStack {
-    pub fn push_undo(&mut self, undo_action: UndoAction, is_manual: bool) {
-        println!("PUSHING UNDO");
-        self.undo_stack.push(undo_action);
-        println!("NEW STATE: {:?}", self.undo_stack);
-        if is_manual {
-            self.redo_stack.clear();
+impl Default for UndoRedoStack {
+    fn default() -> Self {
+        UndoRedoStack {
+            max_size: 64,
+            undo_stack: Vec::default(),
+            redo_stack: Vec::default(),
         }
     }
+}
 
+impl UndoRedoStack {
+    /// Pushing an undo also clears redo as a new action after multiple undo
+    /// operations might invalidate a redo in the stack.
+    pub fn push_undo(&mut self, undo_action: UndoAction) {
+        if self.undo_stack.len() == self.max_size {
+            self.undo_stack.remove(0);
+        }
+        self.undo_stack.push(undo_action);
+        self.redo_stack.clear();
+    }
+
+    /// This push does not clear the redo stack. It's used only for redo actions,
+    /// as switching back&forth between redo and undo is okay.
+    pub fn push_undo_without_clear(&mut self, undo_action: UndoAction) {
+        self.undo_stack.push(undo_action);
+    }
+
+    /// Undo the latest operation by matching the enum and triggering
+    /// the corresponding event.
     pub fn undo(&mut self, mut commands: Commands) {
         let Some(undo_action) = self.undo_stack.pop() else {
-            println!("Nothing to undo!");
             return;
         };
 
@@ -57,15 +81,17 @@ impl UndoRedoStack {
         }
     }
 
+    /// Pushing a redo action. The size check is unnecessary
+    /// as all elements come from the undo stack, and the redo
+    /// stack is cleared on a new user action.
     pub fn push_redo(&mut self, redo_action: RedoAction) {
-        println!("PUSHING REDO");
         self.redo_stack.push(redo_action);
-        println!("NEW STATE: {:?}", self.redo_stack)
     }
 
+    /// Redo the latest operation by matching the enum and triggering
+    /// the corresponding event.
     pub fn redo(&mut self, mut commands: Commands) {
         let Some(redo_action) = self.redo_stack.pop() else {
-            println!("Nothing to redo!");
             return;
         };
 

@@ -21,7 +21,6 @@ pub fn on_vertex_renamed(
     mut text_query: Query<&mut Text2d>,
     mut undo_redo: ResMut<UndoRedoStack>,
 ) {
-    println!("RENAMING VERTEX WITH: {:?}", event.new_label);
     let new_label = event.new_label.clone();
     let vertex_entity = event.entity;
 
@@ -45,7 +44,6 @@ pub fn on_vertex_renamed(
                 entity: event.entity,
                 name: old_label,
             }),
-            true,
         );
     }
 }
