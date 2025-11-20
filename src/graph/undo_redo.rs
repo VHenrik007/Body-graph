@@ -48,6 +48,16 @@ pub struct EdgeDeletionAction {
     pub to: Entity,
 }
 
+#[derive(Debug)]
+pub struct VertexInsertionAction {
+    // Edge
+    pub edge_entity: Entity,
+    pub vertex_entity: Entity,
+    pub vertex_position: Vec2,
+    pub from: Entity,
+    pub to: Entity
+}
+
 // Undo/Redo enums
 // These enums contain some action variant are they themselves are
 // stored in the `UndoRedoStack` stacks.
@@ -60,6 +70,7 @@ pub enum UndoAction {
     UndoVertexMoveAction(VertexMoveAction),
     UndoEdgeDrawingAction(EdgeDrawingAction),
     UndoEdgeDeletionAction(EdgeDeletionAction),
+    UndoVertexInsertionAction(VertexInsertionAction),
 }
 
 #[derive(Debug)]
@@ -70,6 +81,7 @@ pub enum RedoAction {
     RedoVertexMoveAction(VertexMoveAction),
     RedoEdgeDrawingAction(EdgeDrawingAction),
     RedoEdgeDeletionAction(EdgeDeletionAction),
+    RedoVertexInsertionAction(VertexInsertionAction)
 }
 
 // Events
@@ -147,4 +159,14 @@ pub struct UndoEdgeDeletionEvent {
 #[derive(Event)]
 pub struct RedoEdgeDeletionEvent {
     pub action: EdgeDeletionAction
+}
+
+#[derive(Event)]
+pub struct UndoVertexInsertionEvent {
+    pub action: VertexInsertionAction,
+}
+
+#[derive(Event)]
+pub struct RedoVertexInsertionEvent {
+    pub action: VertexInsertionAction,
 }

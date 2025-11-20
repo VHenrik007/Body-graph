@@ -23,10 +23,11 @@ use startups::{spawn_canvas, spawn_temporary_edge};
 use undo_redo_observers::{
     on_redo_edge_draw, on_redo_vertex_deletion, on_redo_vertex_move, on_redo_vertex_rename,
     on_redo_vertex_spawn, on_undo_edge_draw, on_undo_vertex_deletion, on_undo_vertex_move,
-    on_undo_vertex_rename, on_undo_vertex_spawn, on_undo_edge_deletion, on_redo_edge_deletion
+    on_undo_vertex_rename, on_undo_vertex_spawn, on_undo_edge_deletion, on_redo_edge_deletion,
+    on_redo_vertex_insertion, on_undo_vertex_insertion
 };
 use updates::{
-    button_press_debug_system, cursor_icon_manager, project_positions, show_rename_input,
+    cursor_icon_manager, project_positions, show_rename_input,
     undo_redo_system, update_edge_transforms, update_temp_edge_transform,
 };
 
@@ -54,6 +55,8 @@ pub(super) fn plugin(app: &mut App) {
         .add_observer(on_redo_edge_draw)
         .add_observer(on_undo_edge_deletion)
         .add_observer(on_redo_edge_deletion)
+        .add_observer(on_undo_vertex_insertion)
+        .add_observer(on_redo_vertex_insertion)
         .add_systems(Startup, (spawn_canvas, spawn_temporary_edge))
         .add_systems(EguiPrimaryContextPass, show_rename_input)
         .add_systems(
@@ -64,7 +67,6 @@ pub(super) fn plugin(app: &mut App) {
                 update_temp_edge_transform,
                 cursor_icon_manager,
                 undo_redo_system,
-                button_press_debug_system,
             ),
         );
 }

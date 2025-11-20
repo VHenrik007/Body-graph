@@ -2,15 +2,11 @@ use bevy::prelude::*;
 
 use crate::graph::{
     bundles::{DirectedEdgeBundle, VertexBundle},
-    components::{Position, Vertex},
+    components::{DirectedEdge, Position, Vertex},
     events::VertexRenamedEvent,
     resources::UndoRedoStack,
     undo_redo::{
-        EdgeDrawingAction, RedoAction, RedoEdgeDrawingEvent, RedoVertexDeletionEvent,
-        RedoVertexMoveEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction,
-        UndoEdgeDrawingEvent, UndoVertexDeletionEvent, UndoVertexMoveEvent,
-        UndoVertexRenameEvent, UndoVertexSpawnEvent, VertexDeletionAction, VertexMoveAction,
-        VertexRenameAction, VertexSpawnAction, EdgeDeletionAction, UndoEdgeDeletionEvent, RedoEdgeDeletionEvent
+        EdgeDeletionAction, EdgeDrawingAction, RedoAction, RedoEdgeDeletionEvent, RedoEdgeDrawingEvent, RedoVertexDeletionEvent, RedoVertexInsertionEvent, RedoVertexMoveEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction, UndoEdgeDeletionEvent, UndoEdgeDrawingEvent, UndoVertexDeletionEvent, UndoVertexInsertionEvent, UndoVertexMoveEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent, VertexDeletionAction, VertexInsertionAction, VertexMoveAction, VertexRenameAction, VertexSpawnAction
     },
 };
 
@@ -246,6 +242,67 @@ pub fn on_redo_edge_deletion(
         .remove::<DirectedEdgeBundle>();
     undo_redo.push_undo_without_clear(UndoAction::UndoEdgeDeletionAction(EdgeDeletionAction {
         entity: event.action.entity,
+        from: event.action.from,
+        to: event.action.to,
+    }));
+}
+
+pub fn on_undo_vertex_insertion(
+    event: On<UndoVertexInsertionEvent>,
+    mut commands: Commands,
+    mut undo_redo: ResMut<UndoRedoStack>,
+    mut edges: Query<&mut DirectedEdge>
+) {
+    let Ok(mut edge) = edges.get_mut(event.action.edge_entity) else {
+        return;
+    };
+
+    edge.from = event.action.from;
+    edge.to = event.action.to;
+
+    commands
+        .entity(event.action.vertex_entity)
+        .despawn_children()
+        .remove::<VertexBundle>();
+
+    undo_redo.push_redo(RedoAction::RedoVertexInsertionAction(VertexInsertionAction {
+        edge_entity: event.action.edge_entity,
+        vertex_entity: event.action.vertex_entity,
+        vertex_position: event.action.vertex_position,
+        from: event.action.from,
+        to: event.action.to
+    }));
+}
+
+pub fn on_redo_vertex_insertion(
+    event: On<RedoVertexInsertionEvent>,
+    mut commands: Commands,
+    mut undo_redo: ResMut<UndoRedoStack>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut edges: Query<&mut DirectedEdge>
+) {
+    let Ok(mut edge) = edges.get_mut(event.action.edge_entity) else {
+        return;
+    };
+
+    let respawned_vertex_id = commands
+        .entity(event.action.vertex_entity)
+        .insert(VertexBundle::new(
+            &mut meshes,
+            &mut materials,
+            event.action.vertex_position,
+        ))
+        .id();
+    VertexBundle::add_children(&mut commands, respawned_vertex_id);
+
+    edge.from = event.action.from;
+    edge.to = respawned_vertex_id;
+
+    undo_redo.push_undo_without_clear(UndoAction::UndoVertexInsertionAction(VertexInsertionAction {
+        vertex_entity: event.action.vertex_entity,
+        vertex_position: event.action.vertex_position,
+        edge_entity: event.action.edge_entity,
         from: event.action.from,
         to: event.action.to,
     }));

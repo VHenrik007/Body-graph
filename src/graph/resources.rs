@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::graph::{
     helpers::despawn_entity,
     undo_redo::{
-        RedoAction, RedoEdgeDeletionEvent, RedoEdgeDrawingEvent, RedoVertexDeletionEvent, RedoVertexMoveEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction, UndoEdgeDeletionEvent, UndoEdgeDrawingEvent, UndoVertexDeletionEvent, UndoVertexMoveEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent
+        RedoAction, RedoEdgeDeletionEvent, RedoEdgeDrawingEvent, RedoVertexDeletionEvent, RedoVertexMoveEvent, RedoVertexRenameEvent, RedoVertexSpawnEvent, UndoAction, UndoEdgeDeletionEvent, UndoEdgeDrawingEvent, UndoVertexDeletionEvent, UndoVertexMoveEvent, UndoVertexRenameEvent, UndoVertexSpawnEvent, UndoVertexInsertionEvent, RedoVertexInsertionEvent
     },
 };
 
@@ -123,6 +123,11 @@ impl UndoRedoStack {
             UndoAction::UndoEdgeDeletionAction(deletion) => {
                 commands.trigger(UndoEdgeDeletionEvent {action: deletion});
             }
+            UndoAction::UndoVertexInsertionAction(insertion) => {
+                commands.trigger(UndoVertexInsertionEvent {
+                    action: insertion
+                })
+            }
         }
     }
 
@@ -171,6 +176,9 @@ impl UndoRedoStack {
             }
             RedoAction::RedoEdgeDeletionAction(deletion) => {
                 commands.trigger(RedoEdgeDeletionEvent { action: deletion });
+            }
+            RedoAction::RedoVertexInsertionAction(insertion) => {
+                commands.trigger(RedoVertexInsertionEvent { action: insertion });
             }
         }
     }

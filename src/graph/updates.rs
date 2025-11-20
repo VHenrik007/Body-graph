@@ -111,16 +111,6 @@ pub fn undo_redo_system(
     }
 }
 
-pub fn button_press_debug_system(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    undo_redo: Res<UndoRedoStack>,
-) {
-    if keyboard.just_pressed(KeyCode::KeyD) {
-        println!("=UNDO STACK: {:?}", undo_redo.undo_stack);
-        println!("=REDO STACK: {:?}", undo_redo.redo_stack);
-    }
-}
-
 /// Each edge should form a segment between its vertices.
 pub fn update_edge_transforms(
     mut commands: Commands,

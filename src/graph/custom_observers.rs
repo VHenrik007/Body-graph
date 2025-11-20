@@ -10,7 +10,7 @@ use crate::graph::{
     },
     helpers::update_entity_position,
     resources::{HoveredEntity, RenamingState, UndoRedoStack},
-    undo_redo::{EdgeDeletionAction, EdgeDrawingAction, UndoAction, VertexRenameAction, VertexSpawnAction},
+    undo_redo::{EdgeDeletionAction, EdgeDrawingAction, UndoAction, VertexInsertionAction, VertexRenameAction, VertexSpawnAction},
 };
 
 /// When a vertex is renamed, we update the label and
@@ -192,6 +192,7 @@ pub fn vertex_drag_dropped(
                     &mut commands,
                     drag.world_position,
                     hovered_edge,
+                    undo_redo
                 ) {
                     to_entity = inserted_vertex;
                 } else {
@@ -256,6 +257,7 @@ pub fn edge_clicked(
             &mut commands,
             click.world_position,
             click.entity,
+            undo_redo
         );
     }
 }
@@ -270,9 +272,10 @@ pub fn insert_vertex_on_edge(
     mut edges: Query<&mut DirectedEdge>,
     commands: &mut Commands,
     world_position: Vec2,
-    entity: Entity,
+    edge_entity: Entity,
+    mut undo_redo: ResMut<UndoRedoStack>,
 ) -> Option<Entity> {
-    let Ok(mut edge) = edges.get_mut(entity) else {
+    let Ok(mut edge) = edges.get_mut(edge_entity) else {
         return None;
     };
 
@@ -282,6 +285,14 @@ pub fn insert_vertex_on_edge(
     edge.to = new_vertex;
 
     DirectedEdgeBundle::spawn(new_vertex, prev_to, commands, meshes, materials);
+
+    undo_redo.push_undo(UndoAction::UndoVertexInsertionAction(VertexInsertionAction{
+        edge_entity,
+        vertex_entity: new_vertex,
+        vertex_position: world_position,
+        from: edge.from,
+        to: prev_to
+    }), commands);
 
     Some(new_vertex)
 }
