@@ -7,6 +7,9 @@ pub struct VertexRenamedEvent {
     pub entity: Entity,
     /// The new label for the entity.
     pub new_label: String,
+    /// Indicates if the event was triggered by the user or not
+    /// The event might be triggered by the undo/redo logic.
+    pub manual: bool,
 }
 
 /// Canvas click currently just spawns a vertex

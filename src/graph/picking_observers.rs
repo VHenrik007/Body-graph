@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::graph::{
     components::TemporaryDirectedEdge,
-    constants::{HOVERED_VERTEX_COLOR, VERTEX_COLOR, HOVERED_EDGE_COLOR, EDGE_COLOR},
+    constants::{EDGE_COLOR, HOVERED_EDGE_COLOR, HOVERED_VERTEX_COLOR, VERTEX_COLOR},
     events::{
         CanvasClickedEvent, EdgeClickedEvent, VertexClickedEvent, VertexDragDroppedEvent,
         VertexDraggingEvent,

@@ -8,7 +8,7 @@ use crate::graph::{
     components::{Canvas, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
     constants::{EDGE_WIDTH, EDGE_Z, VERTEX_Z},
     events::{UpdateCursorIconEvent, VertexRenamedEvent},
-    resources::{HoveredEntity, RenamingState},
+    resources::{HoveredEntity, RenamingState, UndoRedoStack},
 };
 
 /// Using an inner Position component for readability's sake, which is a `Vec2`
@@ -81,6 +81,7 @@ pub fn show_rename_input(
                     commands.trigger(VertexRenamedEvent {
                         entity,
                         new_label: renaming.temp_text.clone(),
+                        manual: true,
                     });
                 }
                 renaming.active = false;
@@ -90,6 +91,23 @@ pub fn show_rename_input(
                 renaming.active = false;
             }
         });
+}
+
+pub fn undo_redo_system(
+    commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut undo_redo: ResMut<UndoRedoStack>,
+) {
+    let is_ctrl_held =
+        { keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) };
+
+    if is_ctrl_held {
+        if keyboard.just_released(KeyCode::KeyZ) {
+            undo_redo.undo(commands);
+        } else if keyboard.just_released(KeyCode::KeyY) {
+            undo_redo.redo(commands);
+        }
+    }
 }
 
 /// Each edge should form a segment between its vertices.

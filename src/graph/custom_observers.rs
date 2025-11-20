@@ -5,11 +5,12 @@ use crate::graph::{
     components::{ClickTracker, DirectedEdge, Position, TemporaryDirectedEdge, Vertex},
     constants::{CONSECUTIVE_CLICK_TIME, RENAME_CLICK_COUNT},
     events::{
-        CanvasClickedEvent, EdgeClickedEvent, UpdateCursorIconEvent,
-        VertexClickedEvent, VertexDragDroppedEvent, VertexDraggingEvent, VertexRenamedEvent,
+        CanvasClickedEvent, EdgeClickedEvent, UpdateCursorIconEvent, VertexClickedEvent,
+        VertexDragDroppedEvent, VertexDraggingEvent, VertexRenamedEvent,
     },
     helpers::{despawn_entity, update_entity_position},
-    resources::{HoveredEntity, RenamingState},
+    resources::{HoveredEntity, RenamingState, UndoRedoStack},
+    undo_redo::{UndoAction, VertexRenameAction},
 };
 
 /// When a vertex is renamed, we update the label and
@@ -18,13 +19,16 @@ pub fn on_vertex_renamed(
     event: On<VertexRenamedEvent>,
     mut vertex_query: Query<(&mut Vertex, &Children)>,
     mut text_query: Query<&mut Text2d>,
+    mut undo_redo: ResMut<UndoRedoStack>,
 ) {
+    println!("RENAMING VERTEX WITH: {:?}", event.new_label);
     let new_label = event.new_label.clone();
     let vertex_entity = event.entity;
 
     let Ok((mut renamed_vertex, children)) = vertex_query.get_mut(vertex_entity) else {
         return;
     };
+    let old_label = renamed_vertex.label.clone();
     renamed_vertex.label = new_label.clone();
 
     for child in children.iter() {
@@ -33,6 +37,16 @@ pub fn on_vertex_renamed(
         };
 
         modified_text.0 = new_label.clone();
+    }
+
+    if event.manual {
+        undo_redo.push_undo(
+            UndoAction::UndoRename(VertexRenameAction {
+                entity: event.entity,
+                name: old_label,
+            }),
+            true,
+        );
     }
 }
 
@@ -143,7 +157,14 @@ pub fn vertex_drag_dropped(
             if let Ok(hovered_vertex) = vertices.get(hovered_entity) {
                 to_entity = hovered_vertex;
             } else if let Ok(hovered_edge) = edge_entities.get(hovered_entity) {
-                if let Some(inserted_vertex) = insert_vertex_on_edge(meshes, materials, edges, &mut commands, drag.world_position, hovered_edge) {
+                if let Some(inserted_vertex) = insert_vertex_on_edge(
+                    meshes,
+                    materials,
+                    edges,
+                    &mut commands,
+                    drag.world_position,
+                    hovered_edge,
+                ) {
                     to_entity = inserted_vertex;
                 } else {
                     return;
@@ -182,7 +203,12 @@ pub fn edge_clicked(
 
     if click.button == PointerButton::Primary {
         insert_vertex_on_edge(
-            meshes.into_inner(), materials.into_inner(), edges, &mut commands, click.world_position, click.entity
+            meshes.into_inner(),
+            materials.into_inner(),
+            edges,
+            &mut commands,
+            click.world_position,
+            click.entity,
         );
     }
 }
@@ -197,7 +223,7 @@ pub fn insert_vertex_on_edge(
     mut edges: Query<&mut DirectedEdge>,
     commands: &mut Commands,
     world_position: Vec2,
-    entity: Entity
+    entity: Entity,
 ) -> Option<Entity> {
     let Ok(mut edge) = edges.get_mut(entity) else {
         return None;

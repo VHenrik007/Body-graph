@@ -33,7 +33,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             graph::plugin,
-            get_fps_overlay_plugin_config(),
+            // get_fps_overlay_plugin_config(),
         ))
         .add_systems(Startup, spawn_camera)
         .run();
